@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
@@ -15,8 +13,8 @@
     --ink-600: 220 9%  44%;
     --ink-700: 220 10% 33%;
     --ink-800: 220 11% 22%;
-    --ink-900: 220 12% 14%;
-    --ink-950: 220 13% 7%;
+    --ink-900: 220 13% 9%;
+    --ink-950: 220 13% 5%;
 
     /* Accent — deep electric blue #3E5BEA */
     --accent-50:  231 100% 97%;
@@ -28,7 +26,7 @@
     --accent-600: 231 75%  48%;
     --accent-700: 231 70%  37%;
     --accent-800: 231 68%  29%;
-    --accent-900: 231 65%  22%;
+    --accent-900: 231 65%  21%;
   }
 
   * {

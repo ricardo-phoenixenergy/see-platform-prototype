@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 export default {
-  content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
+  content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}', './hooks/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -45,7 +45,7 @@ export default {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
-        xs: '4px', sm: '6px', md: '8px', lg: '12px', xl: '16px',
+        xs: '4px', sm: '6px', md: '8px', lg: '12px', xl: '16px', full: '9999px',
       },
       boxShadow: {
         xs: '0 1px 2px 0 rgb(10 11 13 / 0.04)',
