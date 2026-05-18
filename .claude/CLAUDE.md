@@ -37,9 +37,9 @@ The build plan lives in `docs/plan/`. **Read these files at the start of every n
 
 ## Current milestone
 
-> **Currently working on:** M0 — Foundation
-> **Last completed:** (none — fresh repo)
-> **Next:** M1 — Data Model & Seed
+> **Currently working on:** M3 — Contractor Dashboard (Phase 2)
+> **Last completed:** Phase 1 complete — M0 Foundation, M1 Data Model, M2 Auth & Role Shells. All deployed to Vercel + Neon DB seeded.
+> **Next:** M4 — Project Management System
 
 *Keep this updated as you progress. This single line orients every new session.*
 
