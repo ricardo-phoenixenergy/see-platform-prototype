@@ -91,7 +91,7 @@ const STUBS: StubMap = {
   'Site Assessment Report': {
     1: {
       status: 'PASS',
-      confidence: 0.93,
+      confidence: 0.96,
       findings: [
         { type: 'verified', text: 'Site coordinates and cadastral references verified against deed.' },
         { type: 'verified', text: 'Shadow analysis methodology compliant with SANS 10400-XA.' },
@@ -104,7 +104,7 @@ const STUBS: StubMap = {
   'Structural Engineering Report': {
     1: {
       status: 'PASS',
-      confidence: 0.96,
+      confidence: 0.93,
       findings: [
         { type: 'verified', text: 'Roof loading calculations comply with SANS 10160-2.' },
         { type: 'verified', text: 'Mounting system rated for local wind zone (Zone 3, 42 m/s).' },
@@ -130,7 +130,7 @@ const STUBS: StubMap = {
   'Financial Close Documentation': {
     1: {
       status: 'PASS',
-      confidence: 0.97,
+      confidence: 0.89,
       findings: [
         { type: 'verified', text: 'Signed term sheet from lender attached.' },
         { type: 'verified', text: 'Equity commitment letter dated and countersigned.' },
@@ -143,7 +143,7 @@ const STUBS: StubMap = {
   'Construction Commencement': {
     1: {
       status: 'PASS',
-      confidence: 0.89,
+      confidence: 0.92,
       findings: [
         { type: 'verified', text: 'Building permit (BP-2024-04821) attached and valid.' },
         { type: 'verified', text: 'Site safety file submitted to Department of Labour.' },
@@ -156,7 +156,7 @@ const STUBS: StubMap = {
   'Commissioning Certificate': {
     1: {
       status: 'PASS',
-      confidence: 0.95,
+      confidence: 0.97,
       findings: [
         { type: 'verified', text: 'CoC of Compliance (electrical) issued by registered electrician.' },
         { type: 'verified', text: 'Grid synchronisation test log signed off by Eskom field engineer.' },
@@ -169,7 +169,7 @@ const STUBS: StubMap = {
   'Operational Handover': {
     1: {
       status: 'PASS',
-      confidence: 0.92,
+      confidence: 0.95,
       findings: [
         { type: 'verified', text: 'O&M manual (v2.1) handed over and receipt acknowledged by client.' },
         { type: 'verified', text: 'Monitoring system access credentials transferred.' },
@@ -191,7 +191,7 @@ function defaultPass(): VerificationStubResult {
     findings: [
       { type: 'verified', text: 'Document structure and format validated.' },
       { type: 'verified', text: 'Required signatures and stamps present.' },
-      { type: 'verified', text: 'Content references correct project identifiers.' },
+      { type: 'warning', text: 'Automated analysis limited for this document type — expert review recommended for full assurance' },
     ],
   }
 }
@@ -206,15 +206,15 @@ function defaultPass(): VerificationStubResult {
  */
 export function generateVerificationResult(
   milestoneName: string,
-  version: number,
+  submissionVersion: number,
 ): VerificationStubResult {
   const versionMap = STUBS[milestoneName]
   if (!versionMap) return defaultPass()
-
-  const result = versionMap[version]
-  if (!result) return defaultPass()
-
-  return result
+  const result = versionMap[submissionVersion]
+  if (result) return result
+  // Fall back to the highest defined version for this milestone
+  const maxVersion = Math.max(...Object.keys(versionMap).map(Number))
+  return versionMap[maxVersion] ?? defaultPass()
 }
 
 // ---------------------------------------------------------------------------
