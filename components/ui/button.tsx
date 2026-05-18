@@ -12,7 +12,7 @@ const buttonVariants = cva(
         accent: 'bg-accent-500 text-white hover:bg-accent-600',
         ghost: 'text-ink-700 hover:bg-ink-50 hover:text-ink-900',
         link: 'text-accent-600 hover:text-accent-700 underline-offset-4 hover:underline rounded-none',
-        danger: 'bg-danger-500 text-white hover:bg-red-600',
+        danger: 'bg-danger-500 text-white hover:bg-danger-600',
       },
       size: {
         sm: 'h-8 px-3 text-sm',

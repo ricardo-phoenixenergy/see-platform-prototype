@@ -39,7 +39,7 @@ export default {
         },
         success: { 500: '#1E9D6B' },
         warning: { 500: '#C9892B' },
-        danger: { 500: '#C9384A' },
+        danger: { 500: '#C9384A', 600: '#A82E3C' },
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
