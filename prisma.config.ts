@@ -9,7 +9,9 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    // DATABASE_URL may be undefined at type-check time (no DB provisioned yet); cast is safe
-    url: process.env["DATABASE_URL"] as string,
+    // DIRECT_URL (non-pooled) used by Prisma CLI for migrations — bypasses PgBouncer
+    // which blocks DDL statements. Runtime queries use DATABASE_URL (pooled) via
+    // the @prisma/adapter-pg driver adapter in lib/db.ts.
+    url: process.env["DIRECT_URL"] as string,
   },
 });
