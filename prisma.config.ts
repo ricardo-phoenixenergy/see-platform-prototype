@@ -13,9 +13,8 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    // DIRECT_URL (non-pooled) used by Prisma CLI for migrations — bypasses PgBouncer
-    // which blocks DDL statements. Runtime queries use DATABASE_URL (pooled) via
-    // the @prisma/adapter-pg driver adapter in lib/db.ts.
-    url: process.env["DIRECT_URL"] as string,
+    // Prefer DIRECT_URL (non-pooled) for migrations — bypasses PgBouncer.
+    // Falls back to DATABASE_URL if DIRECT_URL is not set (e.g. Vercel build env).
+    url: (process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"]) as string,
   },
 });
