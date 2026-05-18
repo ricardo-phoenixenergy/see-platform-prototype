@@ -32,13 +32,13 @@ export default function LandingPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/login"
-            className="inline-flex h-12 items-center justify-center rounded-md bg-ink-900 px-6 text-base font-medium text-white transition-colors hover:bg-ink-800 focus-visible:outline-none focus-visible:shadow-ring"
+            className="inline-flex h-12 items-center justify-center rounded-md bg-ink-900 px-6 text-base font-medium text-white transition-colors hover:bg-ink-800 focus-visible:outline-none"
           >
             Request access
           </Link>
           <Link
             href="/login"
-            className="inline-flex h-12 items-center justify-center rounded-md border border-ink-200 bg-white px-6 text-base font-medium text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:shadow-ring"
+            className="inline-flex h-12 items-center justify-center rounded-md border border-ink-300 bg-white px-6 text-base font-medium text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none"
           >
             Sign in
           </Link>
