@@ -42,11 +42,22 @@ export async function recalculateTier(companyId: string): Promise<{
   const previousTier = (current?.tier ?? 'BRONZE') as Tier
   const newTier = getTierForCount(compliantCount)
 
+  const upgraded = newTier !== previousTier
+
   await db.tierStatus.upsert({
     where: { companyId },
-    update: { tier: newTier, compliantProjectCount: compliantCount },
-    create: { companyId, tier: newTier, compliantProjectCount: compliantCount },
+    update: {
+      tier: newTier,
+      compliantProjectCount: compliantCount,
+      ...(upgraded ? { pendingTierUp: newTier } : {}),
+    },
+    create: {
+      companyId,
+      tier: newTier,
+      compliantProjectCount: compliantCount,
+      pendingTierUp: upgraded ? newTier : null,
+    },
   })
 
-  return { previousTier, newTier, upgraded: newTier !== previousTier }
+  return { previousTier, newTier, upgraded }
 }
