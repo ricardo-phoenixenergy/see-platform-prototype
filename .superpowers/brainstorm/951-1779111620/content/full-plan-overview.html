@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEE Platform — Phased Build Plan</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background: #FAFAFB;
+    color: #14161A;
+    padding: 32px 40px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #6C7280; margin-bottom: 28px; }
+
+  .phase {
+    background: #fff;
+    border: 1px solid #E8EBEF;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #F4F5F7;
+  }
+  .phase-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .phase-title { font-size: 14px; font-weight: 600; }
+  .phase-subtitle { font-size: 12px; color: #6C7280; margin-top: 1px; }
+  .phase-body { padding: 14px 18px; }
+
+  .milestones { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .milestone-group { display: flex; gap: 6px; align-items: stretch; }
+  .parallel-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1.5px dashed #3E5BEA;
+    border-radius: 7px;
+    padding: 8px;
+    position: relative;
+  }
+  .parallel-tag {
+    position: absolute;
+    top: -9px; left: 8px;
+    background: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #3E5BEA;
+    padding: 0 4px;
+  }
+  .m-chip {
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .arrow { color: #B8BDC5; font-size: 16px; display: flex; align-items: center; }
+
+  .gate {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #F4F5F7;
+    border: 1px solid #E8EBEF;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 4px;
+  }
+  .gate-icon { font-size: 14px; }
+  .gate-label { font-size: 11px; font-weight: 600; color: #3E5BEA; text-transform: uppercase; letter-spacing: 0.06em; }
+  .gate-desc { font-size: 12px; color: #4A4F58; }
+
+  .plugins {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
+  }
+  .plugin-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .p-seq    { background: #FFF7ED; color: #92400E; border-color: #FDE68A; }
+  .p-ctx7   { background: #F0FDF4; color: #166534; border-color: #BBF7D0; }
+  .p-fe     { background: #EEF2FF; color: #3730A3; border-color: #C7D2FE; }
+  .p-sp     { background: #FDF4FF; color: #6B21A8; border-color: #E9D5FF; }
+  .p-para   { background: #F0F9FF; color: #075985; border-color: #BAE6FD; }
+
+  /* Phase colour palette */
+  .ph1 .phase-num { background: #F4F5F7; color: #4A4F58; }
+  .ph1 .m-chip    { background: #F4F5F7; color: #2E3239; }
+  .ph2 .phase-num { background: #EEF2FF; color: #3E5BEA; }
+  .ph2 .m-chip    { background: #EEF2FF; color: #1F33A3; }
+  .ph3 .phase-num { background: #F0FDF4; color: #166534; }
+  .ph3 .m-chip    { background: #F0FDF4; color: #166534; }
+  .ph4 .phase-num { background: #FDF4FF; color: #6B21A8; }
+  .ph4 .m-chip    { background: #FDF4FF; color: #6B21A8; }
+  .ph5 .phase-num { background: #FFF7ED; color: #92400E; }
+  .ph5 .m-chip    { background: #FFF7ED; color: #92400E; }
+  .ph6 .phase-num { background: #14161A; color: #fff; }
+  .ph6 .m-chip    { background: #14161A; color: #fff; }
+  .ph6 .phase-header { background: #14161A; }
+  .ph6 .phase-title, .ph6 .phase-subtitle { color: #E8EBEF; }
+
+  .section-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    color: #9197A1; margin-bottom: 12px; margin-top: 4px;
+  }
+  .legend { display: flex; gap: 16px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6C7280; }
+  .legend-box { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-dashed { width: 24px; height: 0; border-top: 1.5px dashed #3E5BEA; }
+</style>
+</head>
+<body>
+
+<h1>SEE Platform — Phased Build Plan</h1>
+<p class="subtitle">6 demo-able phases · parallel subagents within phases · review gate at each boundary</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-box" style="background:#F4F5F7;border:1px solid #E8EBEF;"></div> Sequential milestone</div>
+  <div class="legend-item"><div class="legend-dashed"></div> Parallel subagents</div>
+  <div class="legend-item"><div class="legend-box" style="background:#3E5BEA;border-radius:50%;"></div> Review gate</div>
+</div>
+
+<!-- PHASE 1 -->
+<div class="phase ph1">
+  <div class="phase-header">
+    <div class="phase-num">1</div>
+    <div>
+      <div class="phase-title">Shell, Data &amp; Auth</div>
+      <div class="phase-subtitle">M0 · M1 · M2 — fully sequential, everything depends on this</div>
+    </div>
+  </div>
+  <div class="phase-body">
+    <div class="milestones">
+      <div class="milestone-group">
+        <div class="m-chip">M0 — Next.js scaffold + brand tokens + CI</div>
+        <div class="arrow">→</div>
+        <div class="m-chip">M1 — Full Prisma schema + seed data + Blob</div>
+        <div class="arrow">→</div>
+        <div class="m-chip">M2 — Auth.js v5 + 4 roles + KYC scaffold + FileUploader</div>
+      </div>
+    </div>
+    <div class="gate">
+      <div class="gate-icon">🔍</div>
+      <div>
+        <div class="gate-label">Phase 1 Review Gate</div>
+        <div class="gate-desc">Login as Marcus, Lerato, Sipho, Erin (one-click). Branded shell renders. 4 role dashboards reachable. Seed data visible. File upload works.</div>
+      </div>
+    </div>
+    <div class="plugins">
+      <span class="plugin-tag p-seq">sequential-thinking: schema design + auth flow</span>
+      <span class="plugin-tag p-ctx7">context7: Next.js 15, Auth.js v5, Prisma 5</span>
+      <span class="plugin-tag p-fe">frontend-design: landing page + login</span>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 2 -->
+<div class="phase ph2">
+  <div class="phase-header">
+    <div class="phase-num">2</div>
+    <div>
+      <div class="phase-title">Contractor Hero Flow</div>
+      <div class="phase-subtitle">M3 · M4 — sequential (project workspace depends on dashboard shell)</div>
+    </div>
+  </div>
+  <div class="phase-body">
+    <div class="milestones">
+      <div class="milestone-group">
+        <div class="m-chip">M3 — Unified Dashboard + Company Profile + NewsFeed + Wallet header</div>
+        <div class="arrow">→</div>
+        <div class="m-chip">M4 — Projects grid + New Project wizard + Project Workspace (3 tabs) + Milestone tracker + Submission flow</div>
+      </div>
+    </div>
+    <div class="gate">
+      <div class="gate-icon">🔍</div>
+      <div>
+        <div class="gate-label">Phase 2 Review Gate</div>
+        <div class="gate-desc">Marcus logs in → sees dashboard widgets → opens Project Alpha → views milestone tracker → submits a milestone artefact → status changes to Under Review.</div>
+      </div>
+    </div>
+    <div class="plugins">
+      <span class="plugin-tag p-seq">sequential-thinking: milestone logic engine + template selection</span>
+      <span class="plugin-tag p-ctx7">context7: TanStack Query v5, React Hook Form + Zod</span>
+      <span class="plugin-tag p-fe">frontend-design: dashboard + project workspace UI</span>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 3 -->
+<div class="phase ph3">
+  <div class="phase-header">
+    <div class="phase-num">3</div>
+    <div>
+      <div class="phase-title">Governance Layer</div>
+      <div class="phase-subtitle">M4.5 · M5 · M6 — M4.5 first (schema), then M5 + M6 in parallel</div>
+    </div>
+  </div>
+  <div class="phase-body">
+    <div class="milestones" style="align-items:center;">
+      <div class="m-chip">M4.5 — Project Comms (channels, threads, mentions, polling)</div>
+      <div class="arrow">→</div>
+      <div class="parallel-wrap">
+        <div class="parallel-tag">parallel subagents</div>
+        <div class="m-chip">M5 — AI Verification + Expert queue + Tier engine + Badge</div>
+        <div class="m-chip">M6 — Admin dashboard + KYC queue + Milestone review portal + Template builder</div>
+      </div>
+      <div class="arrow">→ merge</div>
+    </div>
+    <div class="gate">
+      <div class="gate-icon">🔍</div>
+      <div>
+        <div class="gate-label">Phase 3 Review Gate</div>
+        <div class="gate-desc">Submit milestone → AI verifies (2–4s animation) → admin reviews and approves → system message posts to comms thread → tier badge updates. Comms channels navigable.</div>
+      </div>
+    </div>
+    <div class="plugins">
+      <span class="plugin-tag p-para">dispatching-parallel-agents: M5 + M6 simultaneously</span>
+      <span class="plugin-tag p-ctx7">context7: Anthropic SDK (AI verification stub), Framer Motion</span>
+      <span class="plugin-tag p-fe">frontend-design: verification animation + tier badge + admin queues</span>
+      <span class="plugin-tag p-seq">sequential-thinking: comms schema + polling architecture</span>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 4 -->
+<div class="phase ph4">
+  <div class="phase-header">
+    <div class="phase-num">4</div>
+    <div>
+      <div class="phase-title">Marketplaces</div>
+      <div class="phase-subtitle">M7 — Service Marketplace + Hardware Marketplace (parallel subagents)</div>
+    </div>
+  </div>
+  <div class="phase-body">
+    <div class="milestones" style="align-items:center;">
+      <div class="parallel-wrap">
+        <div class="parallel-tag">parallel subagents</div>
+        <div class="m-chip">M7a — Service Marketplace: SP directory, RFQ flow, Job Card Kanban, escrow, SP role dashboard</div>
+        <div class="m-chip">M7b — Hardware Marketplace: browse, product pages, cart, PayFast mock, token discount, cashback</div>
+      </div>
+      <div class="arrow">→ merge</div>
+    </div>
+    <div class="gate">
+      <div class="gate-icon">🔍</div>
+      <div>
+        <div class="gate-label">Phase 4 Review Gate</div>
+        <div class="gate-desc">Contractor posts RFQ from milestone → SP bids → contractor accepts → Job Card activates → SP uploads deliverable (auto-Gold). Hardware: browse, add to cart, token discount applied, mock checkout.</div>
+      </div>
+    </div>
+    <div class="plugins">
+      <span class="plugin-tag p-para">dispatching-parallel-agents: Service + Hardware simultaneously</span>
+      <span class="plugin-tag p-fe">frontend-design: marketplace UIs, SP Kanban, product pages</span>
+      <span class="plugin-tag p-ctx7">context7: Recharts (if any marketplace charts)</span>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 5 -->
+<div class="phase ph5">
+  <div class="phase-header">
+    <div class="phase-num">5</div>
+    <div>
+      <div class="phase-title">Commercial Substrate</div>
+      <div class="phase-subtitle">M8 · M9 — O&amp;M + Client role in parallel with Payments + Licensing</div>
+    </div>
+  </div>
+  <div class="phase-body">
+    <div class="milestones" style="align-items:center;">
+      <div class="parallel-wrap">
+        <div class="parallel-tag">parallel subagents</div>
+        <div class="m-chip">M8 — End-Client role, Plant dashboard, O&M schedule, multi-brand normalisation, Prescriptive alerts</div>
+        <div class="m-chip">M9 — EFT + PayFast rails, invoicing, OmLicense paywalls, license activation animation, reseller commissions, Enterprise tier (Spaza)</div>
+      </div>
+      <div class="arrow">→ merge</div>
+    </div>
+    <div class="gate">
+      <div class="gate-icon">🔍</div>
+      <div>
+        <div class="gate-label">Phase 5 Review Gate</div>
+        <div class="gate-desc">Paywall moment: EPC proposes Premium license to Durbanville Mall → client pays EFT (Demo Mode 5s bypass) → paywall dissolves, dashboard activates. Spaza Holdings logs in → Enterprise dashboard renders. O&M charts replay live data.</div>
+      </div>
+    </div>
+    <div class="plugins">
+      <span class="plugin-tag p-para">dispatching-parallel-agents: M8 + M9 simultaneously</span>
+      <span class="plugin-tag p-seq">sequential-thinking: payment state machine + commission engine</span>
+      <span class="plugin-tag p-ctx7">context7: Recharts (O&M charts), Framer Motion (paywall animation)</span>
+      <span class="plugin-tag p-fe">frontend-design: Enterprise dashboard + license activation moment</span>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 6 -->
+<div class="phase ph6">
+  <div class="phase-header">
+    <div class="phase-num">6</div>
+    <div>
+      <div class="phase-title">SEE.AI Assistant + Full Polish Pass</div>
+      <div class="phase-subtitle">M10 — sequential, holistic — requires full platform visible to polish correctly</div>
+    </div>
+  </div>
+  <div class="phase-body" style="background:#1F2227;">
+    <div class="milestones">
+      <div class="milestone-group">
+        <div class="m-chip">Real Claude SDK chat widget + tool calls + conversation history + multi-language</div>
+        <div class="arrow" style="color:#4A4F58;">→</div>
+        <div class="m-chip">Empty states · Skeletons · Error states · Kbd nav · WCAG AA · Demo Mode toggle · Reset button · Mobile QA</div>
+        <div class="arrow" style="color:#4A4F58;">→</div>
+        <div class="m-chip">Playwright e2e: full 28-step dry-run scripted as tests</div>
+      </div>
+    </div>
+    <div class="gate" style="background:#14161A;border-color:#2E3239;">
+      <div class="gate-icon">🚀</div>
+      <div>
+        <div class="gate-label" style="color:#5E7AF5;">Phase 6 — Demo Ready Sign-off</div>
+        <div class="gate-desc" style="color:#B8BDC5;">Full 28-step dry-run passes without "this is a prototype" caveats. SEE.AI answers contextually. All 4 roles one-click login. Vercel production URL live.</div>
+      </div>
+    </div>
+    <div class="plugins" style="margin-top:10px;">
+      <span class="plugin-tag p-ctx7">context7: Anthropic SDK (real streaming, tool calls)</span>
+      <span class="plugin-tag p-sp">superpowers: verification-before-completion before sign-off</span>
+      <span class="plugin-tag p-fe">frontend-design: polish pass + empty states + animations</span>
+      <span class="plugin-tag p-ctx7">context7: Playwright e2e setup</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

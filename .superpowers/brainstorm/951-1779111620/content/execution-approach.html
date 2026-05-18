@@ -1,0 +1,201 @@
+<h2>How should each phase be executed internally?</h2>
+<p class="subtitle">The 6-phase structure is locked. Now we decide how Claude Code builds within each phase — this determines speed, safety, and coordination overhead.</p>
+
+<style>
+.flow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.node {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid rgba(0,0,0,0.12);
+  white-space: nowrap;
+  text-align: center;
+}
+.arrow { color: #9197A1; font-size: 14px; flex-shrink: 0; }
+.parallel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border: 2px dashed #3E5BEA;
+  border-radius: 8px;
+  padding: 8px;
+  position: relative;
+}
+.parallel-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #3E5BEA;
+  margin-bottom: 2px;
+}
+.n-foundation { background: #E8EBF0; }
+.n-feature    { background: #DCE3F5; color: #1F33A3; }
+.n-gate       { background: #14161A; color: #fff; }
+.n-plugin     { background: #EEF2FF; color: #3E5BEA; border-color: #3E5BEA; }
+.n-agent      { background: #F0FDF4; color: #166534; border-color: #16a34a; }
+.tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.tag-rec { background: #EEF2FF; color: #3E5BEA; }
+.tag-fast { background: #F0FDF4; color: #166534; }
+.tag-safe { background: #F4F5F7; color: #6C7280; }
+</style>
+
+<div class="options">
+
+  <!-- OPTION A -->
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Sequential <span class="tag tag-safe">Safest</span></h3>
+      <p>Every milestone built one at a time in the main Claude Code session. Simple, no coordination overhead, full context carried throughout.</p>
+
+      <div class="flow">
+        <div class="node n-foundation">M0 Foundation</div>
+        <div class="arrow">→</div>
+        <div class="node n-foundation">M1 Data</div>
+        <div class="arrow">→</div>
+        <div class="node n-feature">M2 Auth</div>
+        <div class="arrow">→</div>
+        <div class="node n-gate">Phase 1 Review</div>
+      </div>
+      <div class="flow">
+        <div class="node n-feature">M3 Dashboard</div>
+        <div class="arrow">→</div>
+        <div class="node n-feature">M4 Projects</div>
+        <div class="arrow">→</div>
+        <div class="node n-gate">Phase 2 Review</div>
+      </div>
+
+      <p style="font-size:12px;color:#6C7280;margin-top:8px;">Plugins used inline: <strong>context7</strong> for library docs as needed, <strong>sequential-thinking</strong> for complex logic like the milestone template engine, <strong>frontend-design</strong> before each UI milestone.</p>
+
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>No coordination complexity</li>
+          <li>Full context always available</li>
+          <li>Easiest to review and redirect</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Slowest — no parallel work</li>
+          <li>Context window grows large by Phase 4+</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B (Recommended) -->
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Parallel Subagents Within Phases <span class="tag tag-rec">Recommended</span></h3>
+      <p>Foundation milestones (M0–M2) built sequentially — everything depends on them. Once the schema and shell exist, independent milestones within a phase run as parallel subagents, then merge before the review gate.</p>
+
+      <div style="margin: 10px 0;">
+        <div class="parallel-label">Phase 1 — sequential (everything depends on this)</div>
+        <div class="flow">
+          <div class="node n-foundation">M0</div><div class="arrow">→</div>
+          <div class="node n-foundation">M1</div><div class="arrow">→</div>
+          <div class="node n-foundation">M2</div><div class="arrow">→</div>
+          <div class="node n-gate">Review</div>
+        </div>
+
+        <div class="parallel-label" style="margin-top:10px;">Phase 2 — sequential (M4 depends on M3)</div>
+        <div class="flow">
+          <div class="node n-feature">M3 Dashboard</div><div class="arrow">→</div>
+          <div class="node n-feature">M4 Projects</div><div class="arrow">→</div>
+          <div class="node n-gate">Review</div>
+        </div>
+
+        <div class="parallel-label" style="margin-top:10px;">Phase 3 — parallel where possible</div>
+        <div class="flow">
+          <div class="node n-feature">M4.5 Comms</div>
+          <div class="arrow">+</div>
+          <div class="parallel-group">
+            <div class="parallel-label">parallel subagents</div>
+            <div class="node n-agent">M5 Verification</div>
+            <div class="node n-agent">M6 Admin</div>
+          </div>
+          <div class="arrow">→ merge →</div>
+          <div class="node n-gate">Review</div>
+        </div>
+
+        <div class="parallel-label" style="margin-top:10px;">Phase 5 — parallel</div>
+        <div class="flow">
+          <div class="parallel-group">
+            <div class="parallel-label">parallel subagents</div>
+            <div class="node n-agent">M8 O&M / Client</div>
+            <div class="node n-agent">M9 Payments</div>
+          </div>
+          <div class="arrow">→ merge →</div>
+          <div class="node n-gate">Review</div>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:#6C7280;margin-top:6px;"><strong>Plugin strategy:</strong> Main session uses <strong>sequential-thinking</strong> for architecture decisions + <strong>context7</strong> for library lookups. Subagents use <strong>frontend-design</strong> for UI milestones. The <strong>dispatching-parallel-agents</strong> superpowers skill orchestrates this.</p>
+
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Significantly faster on middle phases</li>
+          <li>Each subagent gets a clean context window</li>
+          <li>Matches how the platform modules relate to each other</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Requires careful task handoff briefs to subagents</li>
+          <li>Convention drift risk — mitigated by shared CLAUDE.md</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION C -->
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Worktree Isolation Per Milestone <span class="tag tag-safe">Cleanest Git History</span></h3>
+      <p>Each milestone gets its own git branch + worktree. Work is isolated, reviewed as a PR-style diff at each gate, then merged. Matches the plan's "one milestone = one PR" principle exactly.</p>
+
+      <div class="flow" style="flex-wrap:wrap;">
+        <div class="node n-foundation">main branch</div>
+        <div class="arrow">→ worktree →</div>
+        <div class="node n-feature">feat/m0-foundation</div>
+        <div class="arrow">→ merge →</div>
+        <div class="node n-foundation">main</div>
+        <div class="arrow">→ worktree →</div>
+        <div class="node n-feature">feat/m1-data</div>
+        <div class="arrow">→ ...</div>
+      </div>
+
+      <p style="font-size:12px;color:#6C7280;margin-top:8px;">Review gates become literal code reviews — you can see exactly what changed in each milestone. Plugins work the same as Option A.</p>
+
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Clean, auditable git history</li>
+          <li>Review gates have a clear "diff" to inspect</li>
+          <li>Easiest to revert a single milestone</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Git overhead — no repo yet, must init first</li>
+          <li>Slower than parallel subagents</li>
+          <li>Merge conflicts at phase boundaries</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
