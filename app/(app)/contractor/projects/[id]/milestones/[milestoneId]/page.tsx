@@ -130,7 +130,7 @@ export default async function MilestoneDetailPage({ params }: Props) {
             </p>
           </div>
           <Link
-            href={`/contractor/marketplace?milestone=${milestoneId}`}
+            href={`/contractor/service-center/rfq/new?milestone=${milestoneId}`}
             className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'flex-shrink-0 gap-2')}
           >
             <Wrench className="h-4 w-4" />
