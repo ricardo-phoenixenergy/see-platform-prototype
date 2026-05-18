@@ -28,3 +28,22 @@ export async function getProjects(companyId: string, filters?: {
 }
 
 export type ProjectWithRelations = Awaited<ReturnType<typeof getProjects>>[number]
+
+export async function getProject(projectId: string, companyId: string) {
+  return db.project.findFirst({
+    where: { id: projectId, contractorCompanyId: companyId, deletedAt: null },
+    include: {
+      site: true,
+      clientCompany: { select: { name: true } },
+      milestones: {
+        include: {
+          submissions: { orderBy: { createdAt: 'desc' }, take: 1 },
+        },
+        orderBy: { order: 'asc' },
+      },
+    },
+  })
+}
+
+export type ProjectDetail = NonNullable<Awaited<ReturnType<typeof getProject>>>
+export type MilestoneWithSubmission = ProjectDetail['milestones'][number]
