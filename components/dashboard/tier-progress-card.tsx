@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CashbackRates } from '@/components/tier/cashback-rates'
 
 type Props = {
   tier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
@@ -58,10 +59,13 @@ export function TierProgressCard({ tier, compliantProjectCount, nextTierAt, prog
           </div>
         )}
         {isPlatinum && (
-          <p className="text-sm text-ink-600">
+          <p className="text-sm text-ink-600 mb-4">
             Maximum tier achieved. You earn the highest cashback rate on all transactions.
           </p>
         )}
+        <div className="mt-4">
+          <CashbackRates currentTier={tier} />
+        </div>
       </CardContent>
     </Card>
   )
