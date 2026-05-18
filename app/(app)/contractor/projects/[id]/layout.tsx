@@ -31,6 +31,7 @@ export default async function ProjectWorkspaceLayout({ params, children }: Props
     { label: 'Overview', href: `/contractor/projects/${id}/overview` },
     { label: 'Milestones', href: `/contractor/projects/${id}/milestones` },
     { label: 'Monitoring', href: `/contractor/projects/${id}/monitoring`, locked: !isOperational },
+    { label: 'Communications', href: `/contractor/projects/${id}/comms` },
   ]
 
   return (
@@ -69,7 +70,7 @@ export default async function ProjectWorkspaceLayout({ params, children }: Props
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-hidden">
         {children}
       </div>
     </div>

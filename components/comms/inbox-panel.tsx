@@ -1,0 +1,143 @@
+'use client'
+// components/comms/inbox-panel.tsx
+// Dropdown panel showing unread messages across all channels.
+
+import { useState, useEffect, useRef } from 'react'
+import { useInboxSummary } from '@/hooks/use-comms'
+import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { formatDistanceToNow } from 'date-fns'
+import { Inbox } from 'lucide-react'
+
+type Tab = 'mentions' | 'unread' | 'all'
+
+type Props = {
+  onClose: () => void
+}
+
+export function InboxPanel({ onClose }: Props) {
+  const [tab, setTab] = useState<Tab>('unread')
+  const { data, isLoading } = useInboxSummary()
+  const router = useRouter()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // Close on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [onClose])
+
+  const channels = data?.channels ?? []
+
+  const displayChannels = tab === 'unread'
+    ? channels.filter((ch) => ch.unreadCount > 0)
+    : tab === 'mentions'
+    ? [] // mentions would require a separate API — show empty for prototype
+    : channels
+
+  return (
+    <div
+      ref={panelRef}
+      className="absolute right-0 top-full mt-1.5 w-[400px] bg-white border border-ink-200 rounded-lg shadow-xl z-50 overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100">
+        <div className="flex items-center gap-2">
+          <Inbox className="h-4 w-4 text-ink-600" strokeWidth={1.5} />
+          <span className="text-sm font-semibold text-ink-900">Inbox</span>
+          {(data?.totalUnread ?? 0) > 0 && (
+            <span className="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-danger-500 text-[10px] font-semibold text-white">
+              {(data?.totalUnread ?? 0) > 99 ? '99+' : (data?.totalUnread ?? 0)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-ink-100">
+        {(['mentions', 'unread', 'all'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={cn(
+              'flex-1 py-2 text-xs font-medium capitalize transition-colors',
+              tab === t
+                ? 'text-ink-900 border-b-2 border-ink-900'
+                : 'text-ink-400 hover:text-ink-700'
+            )}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="max-h-80 overflow-y-auto">
+        {isLoading ? (
+          <div className="p-4 space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-12 rounded-md bg-ink-50 animate-pulse" />
+            ))}
+          </div>
+        ) : displayChannels.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-2">
+            <Inbox className="h-8 w-8 text-ink-200" strokeWidth={1} />
+            <p className="text-sm text-ink-400">
+              {tab === 'mentions' ? 'No mentions' : tab === 'unread' ? 'All caught up' : 'No messages'}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-ink-50">
+            {displayChannels.map((ch) => {
+              const timeAgo = ch.latestMessage
+                ? formatDistanceToNow(new Date(ch.latestMessage.createdAt), { addSuffix: true })
+                : ''
+              return (
+                <button
+                  key={ch.channelId}
+                  onClick={() => {
+                    router.push(`/contractor/projects/${ch.projectId}/comms/${ch.channelId}`)
+                    onClose()
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-ink-25 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-ink-800 truncate">
+                          #{ch.channelName}
+                        </span>
+                        <span className="text-[10px] text-ink-300">·</span>
+                        <span className="text-[10px] text-ink-400 truncate">{ch.projectName}</span>
+                      </div>
+                      {ch.latestMessage && (
+                        <p className="text-xs text-ink-500 truncate mt-0.5">
+                          <span className="font-medium text-ink-700">{ch.latestMessage.authorName}:</span>{' '}
+                          {ch.latestMessage.body.slice(0, 80)}
+                          {ch.latestMessage.body.length > 80 ? '…' : ''}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                      <span className="text-[10px] text-ink-400">{timeAgo}</span>
+                      {ch.unreadCount > 0 && (
+                        <span className="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-danger-500 text-[10px] font-semibold text-white">
+                          {ch.unreadCount > 9 ? '9+' : ch.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

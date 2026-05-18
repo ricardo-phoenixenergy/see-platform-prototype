@@ -29,7 +29,7 @@ export default async function MonitoringPage({ params }: Props) {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 overflow-y-auto h-full">
       <p className="text-sm text-ink-500">O&M monitoring coming in Phase 5 (M8).</p>
     </div>
   )

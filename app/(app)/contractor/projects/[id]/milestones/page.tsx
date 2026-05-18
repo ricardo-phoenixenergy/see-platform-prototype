@@ -18,7 +18,7 @@ export default async function MilestonesPage({ params }: Props) {
   ).length
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 max-w-3xl mx-auto overflow-y-auto h-full">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-ink-900">Milestone tracker</h2>

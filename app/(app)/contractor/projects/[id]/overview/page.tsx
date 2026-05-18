@@ -54,7 +54,7 @@ export default async function OverviewPage({ params }: Props) {
   ]
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-4xl mx-auto space-y-6 overflow-y-auto h-full">
       <Card>
         <CardHeader>
           <CardTitle>Project details</CardTitle>

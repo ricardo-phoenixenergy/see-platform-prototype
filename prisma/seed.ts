@@ -15,6 +15,12 @@ function daysAgo(n: number): Date {
   return d
 }
 
+function hoursAgo(n: number): Date {
+  const d = new Date()
+  d.setTime(d.getTime() - n * 60 * 60 * 1000)
+  return d
+}
+
 function daysFromNow(n: number): Date {
   const d = new Date()
   d.setDate(d.getDate() + n)
@@ -73,6 +79,17 @@ async function main() {
     create: {
       email: 'erin@see.platform',
       name: 'Erin Berman-Levy',
+      emailVerified: new Date(),
+      passwordHash,
+    },
+  })
+
+  const naledi = await db.user.upsert({
+    where: { email: 'naledi@adebayorenewables.co.za' },
+    update: {},
+    create: {
+      email: 'naledi@adebayorenewables.co.za',
+      name: 'Naledi Khumalo',
       emailVerified: new Date(),
       passwordHash,
     },
@@ -199,6 +216,12 @@ async function main() {
     where: { userId_companyId: { userId: erin.id, companyId: platformAdmin.id } },
     update: {},
     create: { userId: erin.id, companyId: platformAdmin.id, role: 'ADMIN', isOwner: true },
+  })
+
+  await db.membership.upsert({
+    where: { userId_companyId: { userId: naledi.id, companyId: adebayo.id } },
+    update: {},
+    create: { userId: naledi.id, companyId: adebayo.id, role: 'CONTRACTOR', isOwner: false },
   })
 
   console.log('  ✓ Memberships')
@@ -712,11 +735,463 @@ async function main() {
   console.log('  ✓ News items')
 
   // -------------------------------------------------------------------------
-  // Done
+  // Project Communications — Project Alpha Workspace
   // -------------------------------------------------------------------------
 
+  // Skip if workspace already exists (idempotent)
+  const existingWorkspace = await db.projectWorkspace.findUnique({
+    where: { projectId: projectAlpha.id },
+  })
+
+  if (!existingWorkspace) {
+    const workspace = await db.projectWorkspace.create({
+      data: { projectId: projectAlpha.id },
+    })
+
+    // Default channels
+    const generalCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'general', displayName: 'General', description: 'Broad project discussion', kind: 'DEFAULT', isPinned: true },
+    })
+    const siteUpdatesCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'site-updates', displayName: 'Site Updates', description: 'Field updates, photos, and site conditions', kind: 'DEFAULT' },
+    })
+    const clientCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'client', displayName: 'Client', description: 'Client-facing communications', kind: 'DEFAULT' },
+    })
+    const adminCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'admin', displayName: 'Admin', description: 'Platform administration', kind: 'DEFAULT' },
+    })
+
+    // Milestone thread channels
+    const eiaCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'environmental-impact-assessment-3', displayName: 'Environmental Impact Assessment', description: 'Thread for milestone: Environmental Impact Assessment', kind: 'MILESTONE_THREAD', milestoneId: 'ms-alpha-3' },
+    })
+    const civilCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'site-assessment-report-1', displayName: 'Site Assessment Report', description: 'Thread for milestone: Site Assessment Report', kind: 'MILESTONE_THREAD', milestoneId: 'ms-alpha-1' },
+    })
+    const structuralCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'structural-engineering-report-2', displayName: 'Structural Engineering Report', description: 'Thread for milestone: Structural Engineering Report', kind: 'MILESTONE_THREAD', milestoneId: 'ms-alpha-2' },
+    })
+    const gridCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'grid-connection-application-4', displayName: 'Grid Connection Application', description: 'Thread for milestone: Grid Connection Application', kind: 'MILESTONE_THREAD', milestoneId: 'ms-alpha-4' },
+    })
+    const financialCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'financial-close-documentation-5', displayName: 'Financial Close Documentation', description: 'Thread for milestone: Financial Close Documentation', kind: 'MILESTONE_THREAD', milestoneId: 'ms-alpha-5' },
+    })
+    const constructionCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'construction-commencement-6', displayName: 'Construction Commencement', description: 'Thread for milestone: Construction Commencement', kind: 'MILESTONE_THREAD', milestoneId: 'ms-alpha-6' },
+    })
+    const commissioningCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'commissioning-certificate-7', displayName: 'Commissioning Certificate', description: 'Thread for milestone: Commissioning Certificate', kind: 'MILESTONE_THREAD', milestoneId: 'ms-alpha-7' },
+    })
+    const handoverCh = await db.channel.create({
+      data: { workspaceId: workspace.id, name: 'operational-handover-8', displayName: 'Operational Handover', description: 'Thread for milestone: Operational Handover', kind: 'MILESTONE_THREAD', milestoneId: 'ms-alpha-8' },
+    })
+
+    // Contractor team (Marcus + Naledi) as OWNER in all channels
+    const contractorChannels = [generalCh, siteUpdatesCh, clientCh, adminCh, eiaCh, civilCh, structuralCh, gridCh, financialCh, constructionCh, commissioningCh, handoverCh]
+    for (const ch of contractorChannels) {
+      await db.channelMembership.createMany({
+        data: [
+          { channelId: ch.id, userId: marcus.id, role: 'OWNER' },
+          { channelId: ch.id, userId: naledi.id, role: 'OWNER' },
+        ],
+        skipDuplicates: true,
+      })
+    }
+
+    // Lerato (service provider) as GUEST in site-updates + EIA milestone thread + structural thread
+    await db.channelMembership.createMany({
+      data: [
+        { channelId: siteUpdatesCh.id, userId: lerato.id, role: 'GUEST' },
+        { channelId: eiaCh.id, userId: lerato.id, role: 'GUEST' },
+        { channelId: structuralCh.id, userId: lerato.id, role: 'OWNER' },
+        { channelId: civilCh.id, userId: lerato.id, role: 'OWNER' },
+      ],
+      skipDuplicates: true,
+    })
+
+    // Sipho (client) as GUEST in client channel only
+    await db.channelMembership.create({
+      data: { channelId: clientCh.id, userId: sipho.id, role: 'GUEST' },
+    })
+
+    // Erin (admin) as OBSERVER in admin channel + all milestone threads
+    const adminChannels = [adminCh, eiaCh, civilCh, structuralCh, gridCh, financialCh, constructionCh, commissioningCh, handoverCh]
+    for (const ch of adminChannels) {
+      await db.channelMembership.create({
+        data: { channelId: ch.id, userId: erin.id, role: 'OBSERVER' },
+      })
+    }
+
+    // -----------------------------------------------------------------------
+    // Messages — #general
+    // -----------------------------------------------------------------------
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: marcus.id,
+      body: 'Project workspace created. Add your team members and start collaborating.',
+      createdAt: daysAgo(540), updatedAt: daysAgo(540),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: marcus.id,
+      body: 'Kicking off Project Alpha. Site assessment scheduled for next week. Naledi, can you coordinate with the site team?',
+      createdAt: daysAgo(539), updatedAt: daysAgo(539),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: naledi.id,
+      body: 'On it. Site team confirmed for Tuesday 9am. Will send the pre-visit checklist.',
+      createdAt: daysAgo(538), updatedAt: daysAgo(538),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: marcus.id,
+      body: 'Site assessment report received and signed off. Moving to structural next.',
+      createdAt: daysAgo(450), updatedAt: daysAgo(450),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: naledi.id,
+      body: 'EIA submission in. Environmental consultant says we should have the approval within 45 days. Fingers crossed.',
+      createdAt: daysAgo(350), updatedAt: daysAgo(350),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: marcus.id,
+      body: 'EIA came back rejected. Not ideal but we know what to fix. Naledi is on it with the consultant.',
+      createdAt: daysAgo(200), updatedAt: daysAgo(200),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: marcus.id,
+      body: 'EIA approved. The revised stormwater section did it. Now onto grid connection.',
+      createdAt: daysAgo(130), updatedAt: daysAgo(130),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: naledi.id,
+      body: 'Grid connection came through via the marketplace — Auto-Gold verified. Clean result.',
+      createdAt: daysAgo(95), updatedAt: daysAgo(95),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: naledi.id,
+      body: 'BESS install scheduled for next Thursday. Van der Berg confirmed equipment delivery Wednesday.',
+      createdAt: daysAgo(7), updatedAt: daysAgo(7),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: marcus.id,
+      body: 'Good. Let Sipho know so the site is clear. Has the financial close submission been reviewed yet?',
+      createdAt: daysAgo(6), updatedAt: daysAgo(6),
+    }})
+
+    await db.message.create({ data: {
+      channelId: generalCh.id, authorUserId: naledi.id,
+      body: 'Still under review. Erin indicated it should be done by end of week.',
+      createdAt: daysAgo(5), updatedAt: daysAgo(5),
+    }})
+
+    await db.channel.update({ where: { id: generalCh.id }, data: { lastMessageAt: daysAgo(5) } })
+
+    // -----------------------------------------------------------------------
+    // Messages — #site-updates
+    // -----------------------------------------------------------------------
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: lerato.id,
+      body: 'Site visit complete. Roof structure is solid — no structural concerns for the mounting system. Uploading photos.',
+      createdAt: daysAgo(519), updatedAt: daysAgo(519),
+    }})
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: marcus.id,
+      body: 'Great. Any concerns about the north-facing sections?',
+      createdAt: daysAgo(518), updatedAt: daysAgo(518),
+    }})
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: lerato.id,
+      body: 'North sections are fine. Slight shading from the storage building 10am–12pm but nothing that materially affects yield. Noted in the report.',
+      createdAt: daysAgo(517), updatedAt: daysAgo(517),
+    }})
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: lerato.id,
+      body: 'Structural report submitted. Full sign-off included. Report is in the milestone thread.',
+      createdAt: daysAgo(460), updatedAt: daysAgo(460),
+    }})
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: lerato.id,
+      body: 'Site visit postponed — heavy rain forecast through Thursday. Rescheduling EIA field assessment to next week.',
+      createdAt: daysAgo(380), updatedAt: daysAgo(380),
+    }})
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: naledi.id,
+      body: 'Noted. Keep us posted. Environmental consultant is flexible on timing.',
+      createdAt: daysAgo(379), updatedAt: daysAgo(379),
+    }})
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: lerato.id,
+      body: 'Civil works milestone hit. Trenching complete, cable conduits laid. Photos attached.',
+      attachments: JSON.parse(JSON.stringify([
+        { name: 'civil-completion-1.jpg', url: 'https://example.com/seed/civil-1.jpg', fileSize: 1_200_000, mimeType: 'image/jpeg' },
+        { name: 'civil-completion-2.jpg', url: 'https://example.com/seed/civil-2.jpg', fileSize: 980_000, mimeType: 'image/jpeg' },
+      ])),
+      createdAt: daysAgo(180), updatedAt: daysAgo(180),
+    }})
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: marcus.id,
+      body: 'Good work. Filing this against the structural milestone.',
+      entityRefs: JSON.parse(JSON.stringify([{ type: 'milestone', id: 'ms-alpha-2' }])),
+      createdAt: daysAgo(179), updatedAt: daysAgo(179),
+    }})
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: lerato.id,
+      body: 'BESS delivery vehicle confirmed. ETA Wednesday 2pm at gate 2. Site manager notified.',
+      createdAt: daysAgo(3), updatedAt: daysAgo(3),
+    }})
+
+    await db.message.create({ data: {
+      channelId: siteUpdatesCh.id, authorUserId: naledi.id,
+      body: 'Perfect. Site visit scheduled Thursday 10am for the BESS install inspection.',
+      createdAt: daysAgo(2), updatedAt: daysAgo(2),
+    }})
+
+    await db.channel.update({ where: { id: siteUpdatesCh.id }, data: { lastMessageAt: daysAgo(2) } })
+
+    // -----------------------------------------------------------------------
+    // Messages — #client
+    // -----------------------------------------------------------------------
+
+    await db.message.create({ data: {
+      channelId: clientCh.id, authorUserId: marcus.id,
+      body: 'Welcome to the Spaza Soweto project workspace, Sipho. This channel is your direct line to the project team.',
+      createdAt: daysAgo(530), updatedAt: daysAgo(530),
+    }})
+
+    await db.message.create({ data: {
+      channelId: clientCh.id, authorUserId: sipho.id,
+      body: 'Thanks Marcus. Quick question on the PPA tariff — the R1.98/kWh is fixed for the full 20 years, correct?',
+      createdAt: daysAgo(529), updatedAt: daysAgo(529),
+    }})
+
+    await db.message.create({ data: {
+      channelId: clientCh.id, authorUserId: marcus.id,
+      body: 'Correct — fixed for 20 years with a 3% annual escalation clause as per the signed PPA. The bank confirmation covers this.',
+      createdAt: daysAgo(528), updatedAt: daysAgo(528),
+    }})
+
+    await db.message.create({ data: {
+      channelId: clientCh.id, authorUserId: naledi.id,
+      body: 'Monthly update: EIA submission in progress, grid connection application submitted to City Power. On track for financial close Q2.',
+      createdAt: daysAgo(300), updatedAt: daysAgo(300),
+    }})
+
+    await db.message.create({ data: {
+      channelId: clientCh.id, authorUserId: sipho.id,
+      body: 'Understood. Any impact from the EIA process on the construction timeline?',
+      createdAt: daysAgo(299), updatedAt: daysAgo(299),
+    }})
+
+    await db.message.create({ data: {
+      channelId: clientCh.id, authorUserId: naledi.id,
+      body: 'Potentially 3–4 weeks if approval is delayed. We have contingency built into the programme. Will update you immediately if anything changes.',
+      createdAt: daysAgo(298), updatedAt: daysAgo(298),
+    }})
+
+    await db.message.create({ data: {
+      channelId: clientCh.id, authorUserId: marcus.id,
+      body: 'BESS installation begins next week. The storage unit will increase your grid displacement from 60% to approximately 78%. Site access required Wednesday morning for delivery.',
+      createdAt: daysAgo(8), updatedAt: daysAgo(8),
+    }})
+
+    await db.message.create({ data: {
+      channelId: clientCh.id, authorUserId: sipho.id,
+      body: 'Confirmed. I will have the site manager meet the delivery team at 2pm Wednesday at gate 2.',
+      createdAt: daysAgo(7), updatedAt: daysAgo(7),
+    }})
+
+    await db.channel.update({ where: { id: clientCh.id }, data: { lastMessageAt: daysAgo(7) } })
+
+    // -----------------------------------------------------------------------
+    // Messages — #admin
+    // -----------------------------------------------------------------------
+
+    await db.message.create({ data: {
+      channelId: adminCh.id, authorUserId: marcus.id,
+      body: 'Project Alpha comms workspace active. Erin, you have observer access to all milestone threads.',
+      createdAt: daysAgo(540), updatedAt: daysAgo(540),
+    }})
+
+    await db.message.create({ data: {
+      channelId: adminCh.id, authorUserId: erin.id,
+      body: 'Confirmed. Quick note on the EIA — please ensure the engineer has stamped the document before resubmission. Required per NEMA Section 24.',
+      createdAt: daysAgo(210), updatedAt: daysAgo(210),
+    }})
+
+    await db.message.create({ data: {
+      channelId: adminCh.id, authorUserId: marcus.id,
+      body: 'Noted — will make sure the consulting engineer stamps v2 before we upload.',
+      createdAt: daysAgo(209), updatedAt: daysAgo(209),
+    }})
+
+    await db.channel.update({ where: { id: adminCh.id }, data: { lastMessageAt: daysAgo(209) } })
+
+    // -----------------------------------------------------------------------
+    // Messages — EIA milestone thread (rejected-then-approved story)
+    // -----------------------------------------------------------------------
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: naledi.id,
+      body: 'EIA Report v1 submitted for review. Consultant confirms full NEMA Section 24 compliance. Awaiting admin decision.',
+      createdAt: daysAgo(280), updatedAt: daysAgo(280),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: marcus.id,
+      body: 'Good. Erin has been notified of the submission.',
+      createdAt: daysAgo(279), updatedAt: daysAgo(279),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: erin.id,
+      body: 'I am reviewing the EIA. One question — is section 4.3 on stormwater runoff referring to the wetland adjacent to the northern boundary?',
+      createdAt: daysAgo(270), updatedAt: daysAgo(270),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: marcus.id,
+      body: 'Yes — the seasonal wetland on the northern boundary. The consultant assessed it but I can ask them to provide more detail.',
+      createdAt: daysAgo(269), updatedAt: daysAgo(269),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: erin.id,
+      body: 'Submission v1 of "Environmental Impact Assessment" was rejected. Feedback: "The EIA does not adequately address stormwater runoff impacts on the adjacent wetland. Please resubmit with section 4.3 revised."',
+      createdAt: daysAgo(260), updatedAt: daysAgo(260),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: marcus.id,
+      body: 'Understood. Will get the consultant to revise section 4.3 with the full hydrological assessment.',
+      createdAt: daysAgo(259), updatedAt: daysAgo(259),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: naledi.id,
+      body: 'Consultant confirmed — they will conduct the additional site survey and update section 4.3. Estimated 3 weeks.',
+      createdAt: daysAgo(258), updatedAt: daysAgo(258),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: lerato.id,
+      body: 'I can assist with the site measurements if the consultant needs structural data for the drainage assessment.',
+      createdAt: daysAgo(255), updatedAt: daysAgo(255),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: naledi.id,
+      body: 'EIA Report v2 submitted. Section 4.3 fully revised with hydrological model and engineer stamp included.',
+      createdAt: daysAgo(220), updatedAt: daysAgo(220),
+    }})
+
+    const eiaApprovalMsg = await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: erin.id,
+      body: "Submission v2 of \"Environmental Impact Assessment\" was approved. Feedback: \"Engineer's stamp now present. All NEMA Section 24 references confirmed.\"",
+      createdAt: daysAgo(200), updatedAt: daysAgo(200),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: marcus.id,
+      body: 'Excellent. Thank you Erin. On to grid connection.',
+      createdAt: daysAgo(199), updatedAt: daysAgo(199),
+    }})
+
+    await db.message.create({ data: {
+      channelId: eiaCh.id, authorUserId: naledi.id,
+      body: 'Good news. The consultant will be pleased.',
+      createdAt: daysAgo(198), updatedAt: daysAgo(198),
+    }})
+
+    await db.messageReaction.createMany({
+      data: [
+        { messageId: eiaApprovalMsg.id, userId: marcus.id, emoji: '🎉' },
+        { messageId: eiaApprovalMsg.id, userId: naledi.id, emoji: '🎉' },
+        { messageId: eiaApprovalMsg.id, userId: marcus.id, emoji: '👍' },
+      ],
+      skipDuplicates: true,
+    })
+
+    await db.channel.update({ where: { id: eiaCh.id }, data: { lastMessageAt: daysAgo(198) } })
+
+    // -----------------------------------------------------------------------
+    // Messages — financial close thread (UNDER_REVIEW)
+    // -----------------------------------------------------------------------
+
+    await db.message.create({ data: {
+      channelId: financialCh.id, authorUserId: marcus.id,
+      body: 'Financial close documents submitted. Signed PPA and Standard Bank confirmation both uploaded.',
+      createdAt: daysAgo(10), updatedAt: daysAgo(10),
+    }})
+
+    await db.message.create({ data: {
+      channelId: financialCh.id, authorUserId: naledi.id,
+      body: 'Confirming — submission v1 is under review. Erin has been notified.',
+      createdAt: daysAgo(9), updatedAt: daysAgo(9),
+    }})
+
+    await db.message.create({ data: {
+      channelId: financialCh.id, authorUserId: marcus.id,
+      body: 'Any timeline on the review? We want to keep the BESS install on schedule.',
+      createdAt: daysAgo(8), updatedAt: daysAgo(8),
+    }})
+
+    await db.message.create({ data: {
+      channelId: financialCh.id, authorUserId: naledi.id,
+      body: `@${erin.id} — can you confirm the panel schedule review timeline by EOD?`,
+      mentions: JSON.parse(JSON.stringify([{ type: 'user', userId: erin.id }])),
+      createdAt: daysAgo(1), updatedAt: daysAgo(1),
+    }})
+
+    await db.channel.update({ where: { id: financialCh.id }, data: { lastMessageAt: daysAgo(1) } })
+
+    // -----------------------------------------------------------------------
+    // Messages — structural thread
+    // -----------------------------------------------------------------------
+
+    await db.message.create({ data: {
+      channelId: structuralCh.id, authorUserId: lerato.id,
+      body: 'Structural site survey complete. Roof loading capacity assessed — suitable for the specified panel layout.',
+      createdAt: daysAgo(460), updatedAt: daysAgo(460),
+    }})
+
+    await db.message.create({ data: {
+      channelId: structuralCh.id, authorUserId: lerato.id,
+      body: 'Structural Engineering Report v1 submitted. PI-stamped with all load calculations.',
+      createdAt: daysAgo(450), updatedAt: daysAgo(450),
+    }})
+
+    await db.message.create({ data: {
+      channelId: structuralCh.id, authorUserId: marcus.id,
+      body: 'Report approved. Great work Lerato.',
+      createdAt: daysAgo(440), updatedAt: daysAgo(440),
+    }})
+
+    await db.channel.update({ where: { id: structuralCh.id }, data: { lastMessageAt: daysAgo(440) } })
+
+    console.log('  ✓ Project Alpha comms workspace seeded (~70 messages, 12 channels)')
+  } // end if (!existingWorkspace)
+
   console.log('\n✅ Demo seed complete!')
-  console.log(`   Users: 4 | Companies: 6 | Projects: 3 | Milestones: 8 | Hardware: 5 | O&M readings: 30 | News: 5`)
+  console.log(`   Users: 5 | Companies: 6 | Projects: 3 | Milestones: 8 | Hardware: 5 | O&M readings: 30 | News: 5`)
 }
 
 main()
