@@ -8,13 +8,14 @@ import { cn } from '@/lib/utils'
 import { Wordmark } from '@/components/brand/wordmark'
 import {
   LayoutDashboard, FolderOpen, ShoppingBag, Wallet,
-  Building2, ChevronLeft, ChevronRight, Wrench,
+  Building2, ChevronLeft, ChevronRight, Wrench, TrendingUp, Lock,
 } from 'lucide-react'
 
 export type NavItem = {
   label: string
   href: string
   icon: React.ElementType
+  minTier?: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
 }
 
 type TierInfo = {
@@ -90,7 +91,12 @@ export function Sidebar({ navItems, tierInfo }: Props) {
                     strokeWidth={1.5}
                   />
                   {!collapsed && (
-                    <span className="truncate">{item.label}</span>
+                    <>
+                      <span className="truncate flex-1">{item.label}</span>
+                      {item.minTier && tierInfo && tierInfo.tier === 'BRONZE' && item.minTier !== 'BRONZE' && (
+                        <Lock className="h-3 w-3 text-ink-300 flex-shrink-0" strokeWidth={1.5} />
+                      )}
+                    </>
                   )}
                 </Link>
               </li>
@@ -151,6 +157,7 @@ export const CONTRACTOR_NAV: NavItem[] = [
   { label: 'Projects', href: '/contractor/projects', icon: FolderOpen },
   { label: 'Marketplace', href: '/contractor/marketplace', icon: ShoppingBag },
   { label: 'Service Centre', href: '/contractor/service-center', icon: Wrench },
+  { label: 'Leads', href: '/contractor/leads', icon: TrendingUp, minTier: 'SILVER' as const },
   { label: 'Wallet', href: '/contractor/wallet', icon: Wallet },
   { label: 'Company', href: '/contractor/company', icon: Building2 },
 ]
