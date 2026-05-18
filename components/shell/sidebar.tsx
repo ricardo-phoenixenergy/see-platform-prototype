@@ -9,6 +9,7 @@ import { Wordmark } from '@/components/brand/wordmark'
 import {
   LayoutDashboard, FolderOpen, ShoppingBag, Wallet,
   Building2, ChevronLeft, ChevronRight, Wrench, TrendingUp, Lock,
+  ClipboardList, Scale, HelpCircle, Settings, BarChart3,
 } from 'lucide-react'
 
 export type NavItem = {
@@ -176,7 +177,11 @@ export const CLIENT_NAV: NavItem[] = [
 export const ADMIN_NAV: NavItem[] = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'KYC Queue', href: '/admin/kyc', icon: FolderOpen },
-  { label: 'Milestones', href: '/admin/milestones', icon: Wrench },
-  { label: 'Users', href: '/admin/users', icon: Building2 },
+  { label: 'Submissions', href: '/admin/submissions', icon: ClipboardList },
+  { label: 'Users & Companies', href: '/admin/users', icon: Building2 },
   { label: 'Templates', href: '/admin/templates', icon: ShoppingBag },
+  { label: 'Financial', href: '/admin/financial', icon: BarChart3 },
+  { label: 'Disputes', href: '/admin/disputes', icon: Scale },
+  { label: 'Helpdesk', href: '/admin/helpdesk', icon: HelpCircle },
+  { label: 'Configuration', href: '/admin/configuration', icon: Settings },
 ]
