@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { getCountToNextTier, type Tier } from '@/lib/tier/rules'
 
 export async function getTierInfo(companyId: string) {
   const [tier, wallet] = await Promise.all([
@@ -53,18 +54,17 @@ export async function getNewsItems() {
 
 export async function getTierProgress(companyId: string) {
   const tier = await db.tierStatus.findUnique({ where: { companyId } })
-
-  const nextThreshold: Record<string, number | null> = {
-    BRONZE: 3, SILVER: 8, GOLD: 15, PLATINUM: null,
-  }
-  const currentTier = (tier?.tier ?? 'BRONZE') as 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
+  const currentTier = (tier?.tier ?? 'BRONZE') as Tier
   const count = tier?.compliantProjectCount ?? 0
-  const next = nextThreshold[currentTier] ?? null
+  const countToNext = getCountToNextTier(currentTier, count)
 
   return {
     tier: currentTier,
     compliantProjectCount: count,
-    nextTierAt: next,
-    progressPercent: next !== null ? Math.min(100, Math.round((count / next) * 100)) : 100,
+    nextTierAt: countToNext !== null ? (count + countToNext) : null,
+    countToNextTier: countToNext,
+    progressPercent: countToNext !== null
+      ? Math.min(100, Math.round((count / (count + countToNext)) * 100))
+      : 100,
   }
 }
