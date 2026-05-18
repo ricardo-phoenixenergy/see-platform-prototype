@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SubmissionForm } from '@/components/milestone/submission-form'
 import { SubmissionHistory } from '@/components/milestone/submission-history'
+import { VerificationsPanel } from '@/components/verification/verifications-panel'
 import { buttonVariants } from '@/components/ui/button'
 import Link from 'next/link'
 import { Lock, Wrench } from 'lucide-react'
@@ -18,19 +19,26 @@ export default async function MilestoneDetailPage({ params }: Props) {
   const session = await auth()
   if (!session) redirect('/login')
 
-  const milestone = await db.milestone.findFirst({
-    where: {
-      id: milestoneId,
-      projectId,
-      project: { contractorCompanyId: session.user.companyId },
-    },
-    include: {
-      submissions: { orderBy: { version: 'desc' } },
-    },
-  })
+  const [milestone, wallet] = await Promise.all([
+    db.milestone.findFirst({
+      where: {
+        id: milestoneId,
+        projectId,
+        project: { contractorCompanyId: session.user.companyId },
+      },
+      include: {
+        submissions: { orderBy: { version: 'desc' } },
+      },
+    }),
+    db.walletBalance.findUnique({
+      where: { companyId: session.user.companyId },
+      select: { tokens: true },
+    }),
+  ])
 
   if (!milestone) notFound()
 
+  const tokenBalance = wallet?.tokens ?? 0
   const canSubmit = SUBMITTABLE_STATUSES.includes(milestone.status)
   const isLocked = milestone.status === 'LOCKED'
   const isApproved = milestone.status === 'APPROVED' || milestone.status === 'AUTO_GOLD'
@@ -100,6 +108,16 @@ export default async function MilestoneDetailPage({ params }: Props) {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Verification panel — show when under review and there are submissions */}
+      {isUnderReview && milestone.submissions.length > 0 && (
+        <VerificationsPanel
+          milestoneId={milestoneId}
+          milestoneName={milestone.name}
+          tokenBalance={tokenBalance}
+          showVerifyButtons={true}
+        />
       )}
 
       {/* Get Service bridge */}
