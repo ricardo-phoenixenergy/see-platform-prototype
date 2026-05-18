@@ -226,11 +226,12 @@ model ComplianceDocument {
 // =========================================================================
 
 model TierStatus {
-  id                    String @id @default(cuid())
-  companyId             String @unique
-  tier                  Tier   @default(BRONZE)
-  compliantProjectCount Int    @default(0)
-  pointsToNextTier      Int    @default(0)
+  id                    String  @id @default(cuid())
+  companyId             String  @unique
+  tier                  Tier    @default(BRONZE)
+  compliantProjectCount Int     @default(0)
+  pointsToNextTier      Int     @default(0)
+  pendingTierUp         String? // set by recalculateTier on upgrade; cleared by contractor dashboard redirect
 
   company Company @relation(fields: [companyId], references: [id])
 
