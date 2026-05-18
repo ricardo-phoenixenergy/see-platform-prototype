@@ -25,7 +25,7 @@ export default auth((req) => {
   }
 
   if (req.auth) {
-    const role = req.auth.user.role
+    const role: string = req.auth.user?.role ?? ''
 
     // Admin routes: only ADMIN role allowed
     if (pathname.startsWith('/admin') && role !== 'ADMIN') {
