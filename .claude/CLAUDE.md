@@ -37,9 +37,9 @@ The build plan lives in `docs/plan/`. **Read these files at the start of every n
 
 ## Current milestone
 
-> **Currently working on:** M5 Verification Engine + M6 Admin Role (parallel, Phase 3)
-> **Last completed:** M4.5 — Project Communications fully complete (channels, threading, reactions, edit/delete, custom channels, client invite API, inbox mentions, message search, system messages with isSystem flag).
-> **Next:** M5 (contractor-side AI verification + tier engine) then M6 (full admin role)
+> **Currently working on:** M6 Admin Role (Phase 3)
+> **Last completed:** M5 — Verification Engine & Tier Progression complete (AI verify overlay, expert verify, verifications panel, tier rules engine, recalculation action, tier-up animation, cashback rates, Gold Certificate mock, tier-gated Leads).
+> **Next:** M6 (full admin role — KYC queue, milestone approval, tier recalculation wiring)
 
 *Keep this updated as you progress. This single line orients every new session.*
 
