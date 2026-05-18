@@ -463,7 +463,7 @@ async function main() {
     },
   })
 
-  const projectDurbanville = await db.project.upsert({
+  await db.project.upsert({
     where: { id: 'project-durbanville' },
     update: {},
     create: {
