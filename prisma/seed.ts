@@ -675,6 +675,119 @@ async function main() {
   console.log('  ✓ Hardware listings')
 
   // -------------------------------------------------------------------------
+  // RFQs, Bids, Job Card (Marketplace demo data)
+  // -------------------------------------------------------------------------
+
+  // Open RFQ — Structural Engineering needed for Project Alpha
+  const rfqStructural = await db.rfq.upsert({
+    where: { id: 'rfq-alpha-structural' },
+    update: {},
+    create: {
+      id: 'rfq-alpha-structural',
+      projectId: projectAlpha.id,
+      milestoneId: 'ms-alpha-4',
+      category: 'STRUCTURAL_CIVILS',
+      title: 'Structural Engineering Report — Spaza Soweto Retail Solar PPA',
+      description: 'Require a SACPCMP-registered structural engineer to produce a roof loading analysis and mounting system specification for a 450kW commercial solar installation on a retail centre.',
+      scopeOfWork: 'Roof structural assessment, loading calculations per SANS 10160-2, mounting system specification, PE-stamped report, drawings.',
+      budgetCentsMax: 85_000_00,
+      deadlineDays: 21,
+      status: 'OPEN',
+    },
+  })
+
+  // Open RFQ — Grid Connection Application
+  await db.rfq.upsert({
+    where: { id: 'rfq-alpha-grid' },
+    update: {},
+    create: {
+      id: 'rfq-alpha-grid',
+      projectId: projectAlpha.id,
+      category: 'ENGINEERING',
+      title: 'Grid Connection Application Support — 450kW Embedded Generation',
+      description: 'Require an electrical engineer to prepare and submit the grid connection application to City Power for a 450kW embedded generation installation.',
+      scopeOfWork: 'Single-line diagram, protection relay specification, grid application submission, liaison with City Power.',
+      budgetCentsMax: 35_000_00,
+      deadlineDays: 30,
+      status: 'OPEN',
+    },
+  })
+
+  // Bid from Lerato's company on the structural RFQ
+  await db.bid.upsert({
+    where: { id: 'bid-structural-mokoena' },
+    update: {},
+    create: {
+      id: 'bid-structural-mokoena',
+      rfqId: rfqStructural.id,
+      providerCompanyId: mokoena.id,
+      amountCents: 72_000_00,
+      proposalText: 'We have completed 80+ commercial solar structural assessments across Gauteng. Our team is SACPCMP registered and we carry full PI insurance. Turnaround: 14 working days from site visit. Includes two revision cycles and PE stamp.',
+      estimatedDays: 18,
+      status: 'SUBMITTED',
+    },
+  })
+
+  // Awarded RFQ for Kruger Farm (full lifecycle demo)
+  const rfqKrugerEia = await db.rfq.upsert({
+    where: { id: 'rfq-kruger-eia' },
+    update: {},
+    create: {
+      id: 'rfq-kruger-eia',
+      projectId: projectKruger.id,
+      category: 'LEGAL',
+      title: 'Environmental Impact Assessment — Kruger Family Farm 120kW',
+      description: 'Completed EIA for the Kruger Family Farm 120kW hybrid solar installation.',
+      scopeOfWork: 'Full EIA including public participation, wetland assessment, NEMA compliance.',
+      budgetCentsMax: 45_000_00,
+      deadlineDays: 60,
+      status: 'AWARDED',
+    },
+  })
+
+  await db.bid.upsert({
+    where: { id: 'bid-kruger-eia-mokoena' },
+    update: {},
+    create: {
+      id: 'bid-kruger-eia-mokoena',
+      rfqId: rfqKrugerEia.id,
+      providerCompanyId: mokoena.id,
+      amountCents: 38_500_00,
+      proposalText: 'Completed over 40 EIAs for renewable energy projects. Wetland specialist on team. NEMA-compliant reports.',
+      estimatedDays: 45,
+      status: 'ACCEPTED',
+    },
+  })
+
+  const existingJobCard = await db.jobCard.findUnique({ where: { id: 'jobcard-kruger-eia' } })
+  if (!existingJobCard) {
+    await db.jobCard.create({
+      data: {
+        id: 'jobcard-kruger-eia',
+        rfqId: rfqKrugerEia.id,
+        providerCompanyId: mokoena.id,
+        scopeOfWork: 'Full EIA including public participation, wetland assessment, NEMA compliance. PE-stamped report and supporting hydrological model.',
+        amountCents: 38_500_00,
+        escrowStatus: 'LOCKED',
+        status: 'ACTIVE',
+        deliverables: {
+          create: [
+            { id: 'del-kruger-eia-v1', name: 'EIA Draft v1.pdf', url: 'https://example.com/seed/eia-draft-v1.pdf', version: 1 },
+          ],
+        },
+        messages: {
+          create: [
+            { senderUserId: lerato.id, body: 'Site visit completed on 12 May. Draft report in progress — will upload for review by 20 May.' },
+            { senderUserId: marcus.id, body: 'Thanks Lerato. Please ensure section 4.3 covers the stormwater management plan in detail — admin flagged this on the previous version.' },
+          ],
+        },
+      },
+    })
+  }
+
+  console.log('  ✓ RFQs, bids, job card (marketplace demo data)')
+
+  // -------------------------------------------------------------------------
   // O&M Readings — Kruger Family Farm (30 days of daily data)
   // -------------------------------------------------------------------------
 
