@@ -37,9 +37,9 @@ The build plan lives in `docs/plan/`. **Read these files at the start of every n
 
 ## Current milestone
 
-> **Currently working on:** M6 Admin Role (Phase 3)
-> **Last completed:** M5 — Verification Engine & Tier Progression complete (AI verify overlay, expert verify, verifications panel, tier rules engine, recalculation action, tier-up animation, cashback rates, Gold Certificate mock, tier-gated Leads).
-> **Next:** M6 (full admin role — KYC queue, milestone approval, tier recalculation wiring)
+> **Currently working on:** M7 Marketplaces (Phase 3)
+> **Last completed:** M6 — Admin Role complete (dashboard, KYC queue, submissions review wired to recalculateTier + pendingTierUp animation, users & companies with tier override, template list + form editor, financial/disputes/helpdesk/configuration scaffolds).
+> **Next:** M7 (Service Marketplace + Hardware Marketplace — RFQ-to-Job-Card lifecycle)
 
 *Keep this updated as you progress. This single line orients every new session.*
 
