@@ -9,7 +9,7 @@ export default async function ContractorLayout({ children }: { children: React.R
 
   return (
     <div className="flex h-screen bg-ink-25">
-      <Sidebar navItems={CONTRACTOR_NAV} rolePrefix="contractor" />
+      <Sidebar navItems={CONTRACTOR_NAV} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Topbar />
         <main className="flex-1 overflow-auto">{children}</main>

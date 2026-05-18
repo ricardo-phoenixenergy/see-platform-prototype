@@ -19,10 +19,9 @@ type NavItem = {
 
 type Props = {
   navItems: NavItem[]
-  rolePrefix: string
 }
 
-export function Sidebar({ navItems, rolePrefix: _rolePrefix }: Props) {
+export function Sidebar({ navItems }: Props) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
 

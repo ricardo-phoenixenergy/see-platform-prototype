@@ -9,7 +9,7 @@ export default async function ServiceProviderLayout({ children }: { children: Re
 
   return (
     <div className="flex h-screen bg-ink-25">
-      <Sidebar navItems={SERVICE_PROVIDER_NAV} rolePrefix="service-provider" />
+      <Sidebar navItems={SERVICE_PROVIDER_NAV} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Topbar />
         <main className="flex-1 overflow-auto">{children}</main>

@@ -9,7 +9,7 @@ export default async function ClientLayout({ children }: { children: React.React
 
   return (
     <div className="flex h-screen bg-ink-25">
-      <Sidebar navItems={CLIENT_NAV} rolePrefix="client" />
+      <Sidebar navItems={CLIENT_NAV} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Topbar />
         <main className="flex-1 overflow-auto">{children}</main>

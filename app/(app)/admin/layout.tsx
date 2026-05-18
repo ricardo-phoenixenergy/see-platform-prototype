@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex h-screen bg-ink-25">
-      <Sidebar navItems={ADMIN_NAV} rolePrefix="admin" />
+      <Sidebar navItems={ADMIN_NAV} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Topbar />
         <main className="flex-1 overflow-auto">{children}</main>
