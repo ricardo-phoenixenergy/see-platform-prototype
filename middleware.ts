@@ -2,8 +2,11 @@
 // Edge-compatible auth middleware for the SEE Platform.
 // Protects all non-public routes and enforces role-based redirects.
 // Auth.js v5 `auth()` used as middleware directly — runs on every matched request.
+//
+// Imports from lib/auth-edge (not lib/auth) to avoid pulling in Prisma/bcryptjs,
+// which require Node.js built-ins incompatible with the Vercel Edge runtime.
 
-import { auth } from '@/lib/auth'
+import { auth } from '@/lib/auth-edge'
 import { NextResponse } from 'next/server'
 
 const PUBLIC_PATHS = new Set(['/', '/login', '/register', '/verify-email'])
