@@ -1,0 +1,1480 @@
+// prisma/schema.prisma
+// SEE Platform — complete schema
+// Combines models from:
+//   03_DATA_MODEL.md    — base schema
+//   08_COMMUNICATIONS.md — project comms (ProjectWorkspace, Channel, ChannelMembership, Message, MessageReaction)
+//   09_PAYMENTS_AND_LICENSING.md — payments + licensing (Invoice, InvoiceLineItem, Payment, PlatformBankAccount,
+//                                   OmLicense, LicenseOffer, LicenseCommission,
+//                                   EnterpriseLicense, EnterpriseProjectScope, EnterpriseIntegration,
+//                                   EnterpriseSeat, EnterpriseUsageRecord)
+//
+// NOTE: OmContract does NOT exist — it was replaced by OmLicense.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =========================================================================
+// AUTH (NextAuth tables)
+// =========================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  passwordHash  String?
+  image         String?
+
+  memberships     Membership[]
+  sessions        Session[]
+  accounts        Account[]
+  aiConversations AiConversation[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+
+  // Project comms (08_COMMUNICATIONS.md)
+  channelMemberships ChannelMembership[]
+  messages           Message[]
+  messageReactions   MessageReaction[]
+
+  // Enterprise licensing (09_PAYMENTS_AND_LICENSING.md)
+  enterpriseSeats EnterpriseSeat[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// =========================================================================
+// COMPANIES & MEMBERSHIPS
+// =========================================================================
+
+model Company {
+  id             String      @id @default(cuid())
+  name           String
+  type           CompanyType
+  registrationNo String? // CIPC number
+  vatNo          String?
+  beeeLevel      Int?
+  logoUrl        String?
+
+  // Profile
+  about      String?
+  websiteUrl String?
+  phone      String?
+  email      String?
+
+  // Banking (mocked)
+  bankName         String?
+  bankAccountLast4 String?
+
+  memberships    Membership[]
+  kycSubmissions KycSubmission[]
+  complianceDocs ComplianceDocument[]
+
+  // Contractor-side
+  projects          Project[]          @relation("ContractorProjects")
+  tierStatus        TierStatus?
+  walletBalance     WalletBalance?
+  tokenTransactions TokenTransaction[]
+
+  // Service Provider-side
+  serviceProviderProfile ServiceProviderProfile?
+  bidsSubmitted          Bid[]
+  jobCardsAsProvider     JobCard[]               @relation("JobCardProvider")
+  reviewsReceived        Review[]                @relation("ReviewedCompany")
+
+  // End-Client-side
+  ownedProjectsAsClient Project[] @relation("ClientProjects")
+
+  hardwareOrders Order[]
+  notifications  Notification[]
+
+  // Payments & Invoicing (09_PAYMENTS_AND_LICENSING.md)
+  invoicesIssued   Invoice[]           @relation("InvoicesIssued")
+  invoicesReceived Invoice[]           @relation("InvoicesReceived")
+  licensesHeld     OmLicense[]         @relation("LicensesHeld")
+  licensesResold   OmLicense[]         @relation("LicensesResold")
+  commissions      LicenseCommission[]
+
+  // Enterprise licensing (09_PAYMENTS_AND_LICENSING.md)
+  enterpriseLicensesHeld   EnterpriseLicense[] @relation("EnterpriseLicensesHeld")
+  enterpriseLicensesResold EnterpriseLicense[] @relation("EnterpriseLicensesResold")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+enum CompanyType {
+  CONTRACTOR
+  SERVICE_PROVIDER
+  END_CLIENT
+  PLATFORM_ADMIN
+}
+
+model Membership {
+  id        String  @id @default(cuid())
+  userId    String
+  companyId String
+  role      Role
+  isOwner   Boolean @default(false)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+}
+
+enum Role {
+  CONTRACTOR
+  SERVICE_PROVIDER
+  CLIENT
+  ADMIN
+}
+
+// =========================================================================
+// KYC & COMPLIANCE
+// =========================================================================
+
+model KycSubmission {
+  id              String    @id @default(cuid())
+  companyId       String
+  cipcDocUrl      String?
+  vatDocUrl       String?
+  directorIdUrl   String?
+  status          KycStatus @default(PENDING)
+  rejectionReason String?
+  reviewedBy      String? // userId of admin
+  reviewedAt      DateTime?
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REQUEST_INFO
+}
+
+model ComplianceDocument {
+  id          String    @id @default(cuid())
+  companyId   String
+  category    String // "BEEE Certificate", "Tax Clearance", "PI Insurance", etc.
+  documentUrl String
+  expiresAt   DateTime?
+  isVerified  Boolean   @default(false)
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =========================================================================
+// TIER & WALLET
+// =========================================================================
+
+model TierStatus {
+  id                    String @id @default(cuid())
+  companyId             String @unique
+  tier                  Tier   @default(BRONZE)
+  compliantProjectCount Int    @default(0)
+  pointsToNextTier      Int    @default(0)
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  updatedAt DateTime @updatedAt
+}
+
+enum Tier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model WalletBalance {
+  id        String @id @default(cuid())
+  companyId String @unique
+  tokens    Int    @default(0)
+  fiatCents Int    @default(0) // escrow / pending
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  updatedAt DateTime @updatedAt
+}
+
+model TokenTransaction {
+  id          String               @id @default(cuid())
+  companyId   String
+  amount      Int // positive = earned, negative = spent
+  type        TokenTransactionType
+  description String
+  metadata    Json? // reference to related entity (project, milestone, order)
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId, createdAt])
+}
+
+enum TokenTransactionType {
+  EARN_TUTORIAL
+  EARN_PROJECT_CREATE
+  EARN_SERVICE_REQUEST
+  EARN_EXISTING_PROJECT_UPLOAD
+  EARN_CASHBACK
+  EARN_TIER_BONUS
+  SPEND_AI_VERIFICATION
+  SPEND_EXPERT_VERIFICATION
+  SPEND_COMPANY_PROFILE_GEN
+  SPEND_HARDWARE_DISCOUNT
+  ADJUSTMENT
+}
+
+// =========================================================================
+// PROJECTS
+// =========================================================================
+
+model Project {
+  id                  String  @id @default(cuid())
+  name                String
+  contractorCompanyId String
+  clientCompanyId     String? // optional — client may not be on platform yet
+  externalClientName  String? // used when clientCompanyId is null
+  siteId              String  @unique
+
+  // Technical classification
+  technology           Technology
+  gridConnectionStatus GridConnectionStatus
+  systemSizeKw         Float
+  storageSizeKwh       Float?
+
+  // Commercial
+  dealStructure      DealStructure
+  contractValueCents Int?
+  ppaTariffCents     Int? // if PPA
+
+  // Workflow
+  stage            ProjectStage @default(DEVELOPMENT)
+  templateSnapshot Json // snapshot of milestone template at creation
+  templateVersion  Int
+
+  // Client motivations
+  clientNeeds String?
+
+  // Computed/cached
+  completionPercentage Int @default(0)
+
+  contractorCompany Company           @relation("ContractorProjects", fields: [contractorCompanyId], references: [id])
+  clientCompany     Company?          @relation("ClientProjects", fields: [clientCompanyId], references: [id])
+  site              Site              @relation(fields: [siteId], references: [id])
+  milestones        Milestone[]
+  documents         ProjectDocument[]
+
+  // O&M licensing (09_PAYMENTS_AND_LICENSING.md — replaces former OmContract relation)
+  omLicenses OmLicense[]
+
+  omReadings  OmReading[]
+  rfqs        Rfq[]
+  saleListing ProjectSaleListing?
+
+  // Project comms (08_COMMUNICATIONS.md)
+  workspace ProjectWorkspace?
+
+  // Enterprise licensing (09_PAYMENTS_AND_LICENSING.md)
+  enterpriseScopes EnterpriseProjectScope[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+  deletedAt   DateTime?
+
+  @@index([contractorCompanyId, stage])
+  @@index([clientCompanyId])
+}
+
+enum Technology {
+  SOLAR_PV
+  WIND
+  BESS // battery energy storage
+  HYBRID
+}
+
+enum GridConnectionStatus {
+  GRID_TIED
+  OFF_GRID
+  GRID_TIED_WITH_BACKUP
+}
+
+enum DealStructure {
+  OUTRIGHT
+  PPA
+  LEASE
+}
+
+enum ProjectStage {
+  DEVELOPMENT // pre-financial-close
+  FINANCING
+  CONSTRUCTION
+  COMMISSIONING
+  OPERATIONAL
+  DECOMMISSIONED
+}
+
+model Site {
+  id                 String @id @default(cuid())
+  addressLine        String
+  city               String
+  province           String
+  country            String @default("South Africa")
+  latitude           Float?
+  longitude          Float?
+  irradianceKwhM2Day Float? // location-specific
+
+  project Project?
+
+  createdAt DateTime @default(now())
+}
+
+model ProjectDocument {
+  id         String @id @default(cuid())
+  projectId  String
+  category   String
+  name       String
+  url        String
+  uploadedBy String // userId
+  fileSize   Int
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+// =========================================================================
+// MILESTONE TEMPLATES & INSTANCES
+// =========================================================================
+
+model MilestoneTemplate {
+  id       String  @id @default(cuid())
+  name     String // e.g., "Solar C&I < 1MW Outright"
+  version  Int     @default(1)
+  isActive Boolean @default(true)
+
+  // Selection rules (consumed by lib/milestone-templates.ts)
+  technology    Technology
+  minSizeKw     Float?
+  maxSizeKw     Float?
+  dealStructure DealStructure[]
+
+  items MilestoneTemplateItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MilestoneTemplateItem {
+  id                String       @id @default(cuid())
+  templateId        String
+  order             Int
+  phase             ProjectStage // which project stage this milestone belongs to
+  name              String // e.g., "EIA Report"
+  description       String
+  isHardGate        Boolean      @default(true)
+  requiredArtefacts Json // array of { name, allowedTypes }
+  estimatedDays     Int?
+
+  template MilestoneTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, order])
+}
+
+model Milestone {
+  id                String       @id @default(cuid())
+  projectId         String
+  templateItemId    String? // ref to source item; nullable for ad-hoc
+  order             Int
+  phase             ProjectStage
+  name              String
+  description       String
+  isHardGate        Boolean
+  requiredArtefacts Json
+
+  status      MilestoneStatus @default(LOCKED)
+  startedAt   DateTime?
+  completedAt DateTime?
+  dueDate     DateTime?
+
+  project     Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  submissions MilestoneSubmission[]
+  rfqs        Rfq[] // a milestone can have multiple "Get Service" requests
+
+  // Project comms (08_COMMUNICATIONS.md) — bidirectional link to milestone thread channel
+  channel Channel?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, order])
+}
+
+enum MilestoneStatus {
+  LOCKED
+  AVAILABLE
+  IN_PROGRESS
+  SUBMITTED
+  UNDER_REVIEW
+  ACTION_REQUIRED
+  APPROVED
+  AUTO_GOLD // sourced through marketplace, auto-verified
+}
+
+model MilestoneSubmission {
+  id          String  @id @default(cuid())
+  milestoneId String
+  submittedBy String // userId
+  artefacts   Json // array of { name, url, fileSize, sha256 }
+  notes       String?
+  version     Int     @default(1)
+
+  status               SubmissionStatus @default(PENDING)
+  reviewedBy           String?
+  reviewedAt           DateTime?
+  feedback             String?
+  rejectionAnnotations Json? // PDF annotations
+
+  // Verification
+  verifications MilestoneVerification[]
+
+  milestone Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum SubmissionStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  REQUEST_INFO
+}
+
+model MilestoneVerification {
+  id            String                   @id @default(cuid())
+  submissionId  String
+  type          VerificationType
+  status        VerificationResultStatus
+  performedBy   String? // userId for expert; null for AI
+  costTokens    Int
+  qualityRating VerificationQuality? // colour-coded per Journey doc
+  findings      Json // structured findings
+  notes         String?
+
+  submission MilestoneSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+}
+
+enum VerificationType {
+  AI_AGENT
+  EXPERT
+  AUTO_GOLD_MARKETPLACE
+}
+
+enum VerificationResultStatus {
+  IN_PROGRESS
+  PASS
+  FAIL
+  INCONCLUSIVE
+}
+
+enum VerificationQuality {
+  RED // failing / serious issues
+  AMBER // passes with concerns
+  GREEN // clean pass
+  GOLD // expert-validated gold standard
+}
+
+// =========================================================================
+// SERVICE MARKETPLACE
+// =========================================================================
+
+model ServiceProviderProfile {
+  id              String            @id @default(cuid())
+  companyId       String            @unique
+  headline        String
+  description     String
+  categories      ServiceCategory[]
+  hourlyRateCents Int?
+  serviceAreas    String[] // provinces
+  licenceNumbers  Json?
+  rating          Float? // computed avg
+  ratingCount     Int               @default(0)
+  responseTimeHrs Int? // computed
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ServiceCategory {
+  STRUCTURAL_CIVILS
+  ENGINEERING
+  LEGAL
+  LOGISTICS_PLANT_HIRE
+  FINANCE_INSURANCE
+}
+
+model Rfq {
+  id             String          @id @default(cuid())
+  projectId      String
+  milestoneId    String?
+  category       ServiceCategory
+  title          String
+  description    String
+  scopeOfWork    String
+  budgetCentsMax Int?
+  deadlineDays   Int?
+  status         RfqStatus       @default(OPEN)
+
+  project   Project    @relation(fields: [projectId], references: [id])
+  milestone Milestone? @relation(fields: [milestoneId], references: [id])
+  bids      Bid[]
+  jobCard   JobCard?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime?
+}
+
+enum RfqStatus {
+  OPEN
+  REVIEWING_BIDS
+  AWARDED
+  CANCELLED
+  EXPIRED
+}
+
+model Bid {
+  id                String    @id @default(cuid())
+  rfqId             String
+  providerCompanyId String
+  amountCents       Int
+  proposalText      String
+  estimatedDays     Int
+  status            BidStatus @default(SUBMITTED)
+
+  rfq             Rfq     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  providerCompany Company @relation(fields: [providerCompanyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum BidStatus {
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model JobCard {
+  id                String        @id @default(cuid())
+  rfqId             String        @unique
+  providerCompanyId String
+  scopeOfWork       String
+  amountCents       Int
+  escrowStatus      EscrowStatus  @default(LOCKED)
+  status            JobCardStatus @default(ACTIVE)
+
+  rfq             Rfq              @relation(fields: [rfqId], references: [id])
+  providerCompany Company          @relation("JobCardProvider", fields: [providerCompanyId], references: [id])
+  deliverables    JobDeliverable[]
+  messages        JobMessage[]
+  review          Review?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+}
+
+enum JobCardStatus {
+  ACTIVE
+  PENDING_REVIEW
+  COMPLETED
+  DISPUTED
+  CANCELLED
+}
+
+enum EscrowStatus {
+  LOCKED
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+model JobDeliverable {
+  id        String @id @default(cuid())
+  jobCardId String
+  name      String
+  url       String
+  version   Int    @default(1)
+
+  jobCard JobCard @relation(fields: [jobCardId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model JobMessage {
+  id            String  @id @default(cuid())
+  jobCardId     String
+  senderUserId  String
+  body          String
+  attachmentUrl String?
+
+  jobCard JobCard @relation(fields: [jobCardId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([jobCardId, createdAt])
+}
+
+model Review {
+  id                String @id @default(cuid())
+  jobCardId         String @unique
+  reviewedCompanyId String
+  rating            Int // 1-5
+  text              String
+
+  jobCard         JobCard @relation(fields: [jobCardId], references: [id])
+  reviewedCompany Company @relation("ReviewedCompany", fields: [reviewedCompanyId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// =========================================================================
+// HARDWARE MARKETPLACE
+// =========================================================================
+
+model HardwareListing {
+  id           String           @id @default(cuid())
+  category     HardwareCategory
+  manufacturer String
+  model        String
+  sku          String           @unique
+  description  String
+  priceCents   Int
+  stockQty     Int              @default(0)
+  imageUrl     String?
+  specs        Json
+  isAffiliate  Boolean          @default(false)
+  affiliateUrl String?
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum HardwareCategory {
+  SOLAR_PANEL
+  BATTERY
+  INVERTER
+  GENERATOR
+  ACCESSORY
+}
+
+model Order {
+  id                   String      @id @default(cuid())
+  companyId            String
+  status               OrderStatus @default(PENDING_PAYMENT)
+  subtotalCents        Int
+  tokenDiscountCents   Int         @default(0)
+  tokensApplied        Int         @default(0)
+  totalCents           Int
+  cashbackTokensEarned Int         @default(0)
+  paymentRef           String?
+
+  company Company     @relation(fields: [companyId], references: [id])
+  items   OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model OrderItem {
+  id                   String @id @default(cuid())
+  orderId              String
+  listingId            String
+  qty                  Int
+  priceCentsAtPurchase Int
+
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listing HardwareListing @relation(fields: [listingId], references: [id])
+}
+
+// =========================================================================
+// O&M MONITORING
+// =========================================================================
+
+model OmReading {
+  id                String   @id @default(cuid())
+  projectId         String
+  inverterBrand     String // WEG, Victron, SunSynk, Deye
+  recordedAt        DateTime
+  productionKwh     Float
+  batterySoCPercent Float?
+  consumptionKwh    Float?
+  gridImportKwh     Float?
+  gridExportKwh     Float?
+  ambientTempC      Float?
+  irradianceWM2     Float?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, recordedAt])
+}
+
+// NOTE: OmContract has been REMOVED — replaced by OmLicense (see 09_PAYMENTS_AND_LICENSING.md).
+// The OmLicense model is defined in the PAYMENTS & LICENSING section below.
+
+model OmEvent {
+  id          String      @id @default(cuid())
+  projectId   String
+  type        OmEventType
+  title       String
+  description String?
+  scheduledAt DateTime
+  completedAt DateTime?
+  attachments Json?
+
+  createdAt DateTime @default(now())
+}
+
+enum OmEventType {
+  MAINTENANCE
+  CLEANING
+  INSPECTION
+  REPAIR
+  CLIENT_MEETING
+  SITE_VISIT
+  ALERT
+}
+
+// =========================================================================
+// PROJECT SALE
+// =========================================================================
+
+model ProjectSaleListing {
+  id                String            @id @default(cuid())
+  projectId         String            @unique
+  listedByCompanyId String
+  askingPriceCents  Int
+  aiValuationCents  Int
+  status            SaleListingStatus @default(ACTIVE)
+  description       String
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum SaleListingStatus {
+  ACTIVE
+  UNDER_OFFER
+  SOLD
+  WITHDRAWN
+}
+
+// =========================================================================
+// CONTENT & AI
+// =========================================================================
+
+model NewsItem {
+  id          String   @id @default(cuid())
+  title       String
+  summary     String
+  source      String
+  sourceUrl   String
+  category    String
+  publishedAt DateTime
+  imageUrl    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([publishedAt])
+}
+
+model AiConversation {
+  id     String  @id @default(cuid())
+  userId String
+  title  String?
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AiMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AiMessage {
+  id             String        @id @default(cuid())
+  conversationId String
+  role           AiMessageRole
+  content        String // markdown / plain
+  toolCalls      Json? // tool calls made
+  toolResults    Json?
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+// =========================================================================
+// NOTIFICATIONS & AUDIT
+// =========================================================================
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String?
+  companyId String?
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+  @@index([companyId, readAt])
+}
+
+enum NotificationType {
+  MILESTONE_SUBMITTED
+  MILESTONE_APPROVED
+  MILESTONE_REJECTED
+  KYC_APPROVED
+  KYC_REJECTED
+  TIER_UP
+  RFQ_BID_RECEIVED
+  RFQ_BID_ACCEPTED
+  JOB_DELIVERABLE_READY
+  OM_ALERT
+  AI_VERIFICATION_COMPLETE
+  TOKEN_AWARDED
+  ORDER_STATUS
+  // Comms notifications (08_COMMUNICATIONS.md)
+  MESSAGE_MENTION
+  MESSAGE_REPLY_TO_YOU
+  CHANNEL_INVITE
+  SYSTEM
+}
+
+model AuditLog {
+  id         String  @id @default(cuid())
+  userId     String?
+  entityType String
+  entityId   String
+  action     String
+  metadata   Json?
+
+  user User? @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+}
+
+// =========================================================================
+// PROJECT COMMUNICATIONS (08_COMMUNICATIONS.md)
+// =========================================================================
+
+model ProjectWorkspace {
+  id         String  @id @default(cuid())
+  projectId  String  @unique
+  isArchived Boolean @default(false)
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  channels Channel[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Channel {
+  id          String      @id @default(cuid())
+  workspaceId String
+  name        String // "general", "site-updates" — lowercase, slug-style
+  displayName String? // optional pretty name for display
+  description String?
+  kind        ChannelKind
+  topic       String? // Slack-style "topic" line at the top of the channel
+  isArchived  Boolean     @default(false)
+  isPinned    Boolean     @default(false) // pin to top of sidebar
+
+  // For milestone threads: which milestone this channel represents
+  milestoneId String? @unique
+
+  workspace   ProjectWorkspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  milestone   Milestone?          @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  memberships ChannelMembership[]
+  messages    Message[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastMessageAt DateTime? // denormalised for sort-by-recent
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, lastMessageAt])
+}
+
+enum ChannelKind {
+  DEFAULT // auto-created default channel (#general, etc.)
+  CUSTOM // user-created
+  MILESTONE_THREAD // auto-created for a Milestone
+  DIRECT // reserved for future DM support (not in prototype)
+}
+
+model ChannelMembership {
+  id         String         @id @default(cuid())
+  channelId  String
+  userId     String
+  role       MembershipRole @default(MEMBER)
+  lastReadAt DateTime? // tracks read state for unread counts
+  isMuted    Boolean        @default(false)
+  joinedAt   DateTime       @default(now())
+  leftAt     DateTime? // soft-leave; preserve history
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([userId, lastReadAt])
+}
+
+enum MembershipRole {
+  OWNER // contractor team member; can manage
+  MEMBER // full read/write
+  GUEST // read/write but limited (SPs, clients)
+  OBSERVER // read-only (admin overseers, completed-job SPs)
+}
+
+model Message {
+  id              String  @id @default(cuid())
+  channelId       String
+  authorUserId    String
+  body            String // markdown content
+  parentMessageId String? // thread reply
+  isPinned        Boolean @default(false)
+
+  // Rich content
+  attachments Json? // [{ name, url, fileSize, sha256, mimeType }] — same shape as MilestoneSubmission.artefacts
+  entityRefs  Json? // [{ type: 'milestone'|'rfq'|'submission'|'project', id }] for rich-card rendering
+  mentions    Json? // [{ type: 'user'|'everyone', userId? }] extracted on send
+
+  editedAt  DateTime?
+  deletedAt DateTime? // soft delete
+
+  channel       Channel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author        User              @relation(fields: [authorUserId], references: [id])
+  parentMessage Message?          @relation("Replies", fields: [parentMessageId], references: [id], onDelete: Cascade)
+  replies       Message[]         @relation("Replies")
+  reactions     MessageReaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([channelId, createdAt])
+  @@index([parentMessageId, createdAt])
+  @@index([authorUserId, createdAt])
+}
+
+model MessageReaction {
+  id        String @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String // unicode emoji or shortcode
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+// =========================================================================
+// PAYMENTS & INVOICING (09_PAYMENTS_AND_LICENSING.md)
+// =========================================================================
+
+model Invoice {
+  id                 String        @id @default(cuid())
+  invoiceNumber      String        @unique // SEE-INV-2026-0142
+  issuerType         InvoiceIssuer
+  issuerCompanyId    String? // null when PLATFORM
+  recipientCompanyId String
+  status             InvoiceStatus @default(DRAFT)
+  subtotalCents      Int
+  vatRate            Float         @default(0.15)
+  vatCents           Int
+  totalCents         Int
+  issuedAt           DateTime      @default(now())
+  dueDate            DateTime
+  paidAt             DateTime?
+  notes              String?
+
+  issuerCompany    Company?          @relation("InvoicesIssued", fields: [issuerCompanyId], references: [id])
+  recipientCompany Company           @relation("InvoicesReceived", fields: [recipientCompanyId], references: [id])
+  lineItems        InvoiceLineItem[]
+  payments         Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([recipientCompanyId, status])
+  @@index([issuerCompanyId, status])
+}
+
+enum InvoiceIssuer {
+  PLATFORM // platform → user company
+  COMPANY // company → company (e.g., EPC selling license to client; platform intermediates)
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  AWAITING_PAYMENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model InvoiceLineItem {
+  id              String       @id @default(cuid())
+  invoiceId       String
+  description     String
+  quantity        Float        @default(1)
+  unitPriceCents  Int
+  totalCents      Int
+  type            LineItemType
+  relatedEntityId String? // licenseId, jobCardId, orderId, etc.
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+enum LineItemType {
+  OM_LICENSE_ACTIVATION
+  OM_LICENSE_RENEWAL
+  AI_VERIFICATION
+  EXPERT_VERIFICATION
+  PLATFORM_FEE
+  HARDWARE
+  SUBSCRIPTION
+  ESCROW_DEPOSIT
+  COMMISSION_PAYOUT
+  TOKEN_PURCHASE
+}
+
+model Payment {
+  id                 String        @id @default(cuid())
+  invoiceId          String
+  rail               PaymentRail
+  amountCents        Int
+  status             PaymentStatus @default(INITIATED)
+  reference          String?       @unique // generated for EFT
+  proofOfPaymentUrl  String? // EFT only
+  payfastTxnId       String? // PayFast only
+  reconciledByUserId String?
+  reconciledAt       DateTime?
+  bankReference      String? // what the bank statement shows
+  disputeReason      String?
+  expiresAt          DateTime? // 7-day window for EFT
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([reference])
+}
+
+enum PaymentRail {
+  EFT
+  PAYFAST
+}
+
+enum PaymentStatus {
+  INITIATED
+  AWAITING_PROOF
+  PROOF_UPLOADED
+  AWAITING_RECONCILIATION
+  PROCESSING // PayFast in-flight
+  PAID
+  FAILED
+  DISPUTED
+  EXPIRED
+}
+
+model PlatformBankAccount {
+  id            String  @id @default(cuid())
+  accountName   String
+  bankName      String
+  accountNumber String
+  branchCode    String
+  accountType   String
+  swiftCode     String?
+  isActive      Boolean @default(true)
+  notes         String? // e.g. "use for ZAR invoices only"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =========================================================================
+// O&M LICENSING (09_PAYMENTS_AND_LICENSING.md — replaces OmContract)
+// =========================================================================
+
+model OmLicense {
+  id                String          @id @default(cuid())
+  projectId         String
+  licenseeCompanyId String // who pays / who holds the license
+  viewerType        OmViewerType // EPC view or CLIENT view
+  tier              OmLicenseTier
+  status            OmLicenseStatus @default(INACTIVE)
+  monthlyFeeCents   Int
+  activatedAt       DateTime?
+  nextBillingAt     DateTime?
+  cancelledAt       DateTime?
+  lapsedAt          DateTime?
+
+  // Reseller model (Flow A): when an EPC sold this license to a client,
+  // resellerCompanyId records who gets the commission
+  resellerCompanyId String?
+  commissionRate    Float? // e.g. 0.20
+
+  // Enterprise supersession (09_PAYMENTS_AND_LICENSING.md)
+  // CLIENT-viewer OmLicense transitions to SUPERSEDED_BY_ENTERPRISE when an
+  // EnterpriseLicense covering the project becomes ACTIVE.
+  supersedingEnterpriseId String?
+  supersedingEnterprise   EnterpriseLicense? @relation("OmLicensesSuperseded", fields: [supersedingEnterpriseId], references: [id])
+
+  project         Project             @relation(fields: [projectId], references: [id])
+  licenseeCompany Company             @relation("LicensesHeld", fields: [licenseeCompanyId], references: [id])
+  resellerCompany Company?            @relation("LicensesResold", fields: [resellerCompanyId], references: [id])
+  commissions     LicenseCommission[]
+  offers          LicenseOffer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, viewerType, status]) // at most one ACTIVE license per (project, viewer)
+  @@index([licenseeCompanyId, status])
+  @@index([resellerCompanyId, status])
+}
+
+enum OmViewerType {
+  EPC // contractor's portfolio-manager dashboard
+  CLIENT // asset owner's plant dashboard
+}
+
+enum OmLicenseTier {
+  BASIC
+  PREMIUM
+  AI
+}
+
+enum OmLicenseStatus {
+  INACTIVE // never activated
+  PENDING_PAYMENT // invoice issued, not yet paid
+  ACTIVE
+  AWAITING_RENEWAL // due date passed, in grace period
+  LAPSED // grace expired
+  CANCELLED // user-cancelled
+  SUPERSEDED_BY_ENTERPRISE // CLIENT-viewer superseded when EnterpriseLicense covers this project
+}
+
+// EPC proposes a license sale to a client (Flow A)
+model LicenseOffer {
+  id                    String        @id @default(cuid())
+  licenseId             String // pre-created OmLicense in PENDING_PAYMENT
+  proposedByCompanyId   String // EPC
+  proposedToCompanyId   String // Client
+  tier                  OmLicenseTier
+  monthlyFeeCents       Int
+  commissionRateOffered Float
+  message               String? // EPC's pitch message
+  status                OfferStatus   @default(PENDING)
+  respondedAt           DateTime?
+
+  license OmLicense @relation(fields: [licenseId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+// Recurring commission earned by an EPC for a resold license
+model LicenseCommission {
+  id                String           @id @default(cuid())
+  licenseId         String
+  resellerCompanyId String
+  period            DateTime // e.g., 2026-06-01 = June 2026 commission
+  amountCents       Int
+  status            CommissionStatus @default(ACCRUED)
+  paidAt            DateTime?
+  payoutBatchId     String?
+
+  license         OmLicense @relation(fields: [licenseId], references: [id])
+  resellerCompany Company   @relation(fields: [resellerCompanyId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([licenseId, period])
+  @@index([resellerCompanyId, status])
+}
+
+enum CommissionStatus {
+  ACCRUED // license active, commission earned but not yet paid
+  READY_TO_PAY // monthly payout batch generated
+  PAID // platform paid EPC via EFT
+  CANCELLED // license cancelled in same period
+}
+
+// =========================================================================
+// ENTERPRISE LICENSING (09_PAYMENTS_AND_LICENSING.md)
+// =========================================================================
+
+model EnterpriseLicense {
+  id              String                  @id @default(cuid())
+  clientCompanyId String // the enterprise client
+  status          EnterpriseLicenseStatus @default(DRAFT)
+
+  // Contract
+  contractReference String        @unique // e.g., "MSA-2025-014 / SOW-001"
+  contractStartDate DateTime
+  contractEndDate   DateTime?
+  reviewCadence     ReviewCadence
+  nextReviewDate    DateTime?
+
+  // Pricing components (cents)
+  baseMonthlyFeeCents    Int
+  perSeatMonthlyFeeCents Int     @default(0)
+  perIntegrationFees     Json // { OUTBOUND_API: 350000, ... } — keyed by IntegrationType
+  usageRates             Json // { apiCallsPer1000Cents: 50, ... }
+  oneTimeSetupFeeCents   Int     @default(0)
+  oneTimeSetupInvoiced   Boolean @default(false)
+
+  // Commercial relationship to a reseller EPC (if any)
+  resellerCompanyId        String?
+  negotiatedCommissionRate Float? // e.g., 0.10 (10%)
+
+  // Customisation
+  customDashboardConfig Json? // serialised dashboard layout for this client
+  brandingConfig        Json? // { logoUrl, primaryColor, customSubdomain, ... }
+
+  notes String? // freeform — contract terms summary
+
+  clientCompany   Company                  @relation("EnterpriseLicensesHeld", fields: [clientCompanyId], references: [id])
+  resellerCompany Company?                 @relation("EnterpriseLicensesResold", fields: [resellerCompanyId], references: [id])
+  projectScopes   EnterpriseProjectScope[]
+  integrations    EnterpriseIntegration[]
+  seats           EnterpriseSeat[]
+  usageRecords    EnterpriseUsageRecord[]
+
+  // OmLicenses superseded when this Enterprise license became ACTIVE
+  supersededOmLicenses OmLicense[] @relation("OmLicensesSuperseded")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  activatedAt DateTime?
+  cancelledAt DateTime?
+
+  @@index([clientCompanyId, status])
+  @@index([resellerCompanyId])
+}
+
+enum EnterpriseLicenseStatus {
+  DRAFT // admin creating, not yet active
+  PENDING_SETUP // contract signed, awaiting implementation team
+  ACTIVE
+  SUSPENDED // payment overdue / contract dispute
+  CANCELLED
+  EXPIRED
+}
+
+enum ReviewCadence {
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+}
+
+// Which projects this Enterprise license covers
+model EnterpriseProjectScope {
+  id        String @id @default(cuid())
+  licenseId String
+  projectId String
+
+  license EnterpriseLicense @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  project Project           @relation(fields: [projectId], references: [id])
+
+  @@unique([licenseId, projectId])
+}
+
+model EnterpriseIntegration {
+  id              String            @id @default(cuid())
+  licenseId       String
+  type            IntegrationType
+  status          IntegrationStatus @default(CONFIGURED)
+  config          Json // type-specific config (endpoint URL, API key ref, schedule, etc.)
+  lastActivityAt  DateTime? // last successful exchange
+  monthlyFeeCents Int // copied from license at activation; may diverge if negotiated
+
+  license EnterpriseLicense @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum IntegrationType {
+  OUTBOUND_API
+  OUTBOUND_WEBHOOK
+  SCHEDULED_EXPORT
+  REALTIME_STREAM
+  INBOUND_FEED
+  CUSTOM_DASHBOARD
+  WHITE_LABEL
+}
+
+enum IntegrationStatus {
+  CONFIGURED // set up but not yet exchanging data
+  ACTIVE // exchanging data
+  ERROR // last attempt failed
+  PAUSED // intentionally disabled
+}
+
+// Enterprise client's internal users (seats)
+model EnterpriseSeat {
+  id        String             @id @default(cuid())
+  licenseId String
+  userId    String // the User record for this seat
+  seatRole  EnterpriseSeatRole
+  isActive  Boolean            @default(true)
+
+  license EnterpriseLicense @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  user    User              @relation(fields: [userId], references: [id])
+
+  createdAt     DateTime  @default(now())
+  deactivatedAt DateTime?
+
+  @@unique([licenseId, userId])
+}
+
+enum EnterpriseSeatRole {
+  ENTERPRISE_ADMIN // can manage seats, integrations, view everything
+  ENTERPRISE_FINANCE // sees financial views; no ops detail
+  ENTERPRISE_OPS // sees operational views; no finance detail
+  ENTERPRISE_VIEWER // read-only across configured views
+}
+
+// Usage metering for usage-based pricing components
+model EnterpriseUsageRecord {
+  id          String      @id @default(cuid())
+  licenseId   String
+  period      DateTime // e.g., 2026-06-01 = June 2026
+  metric      UsageMetric
+  units       Int // e.g., API call count
+  billedCents Int // computed at billing time
+
+  license EnterpriseLicense @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@unique([licenseId, period, metric])
+}
+
+enum UsageMetric {
+  API_CALLS
+  WEBHOOK_DELIVERIES
+  DATA_EXPORTS_GB
+}
