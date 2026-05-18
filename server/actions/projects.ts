@@ -171,7 +171,8 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
         await tx.message.create({
           data: {
             channelId: generalChannel.id,
-            authorUserId: currentUserId,
+            authorUserId: null,
+            isSystem: true,
             body: 'Project workspace created. Add your team members and start collaborating.',
           },
         })

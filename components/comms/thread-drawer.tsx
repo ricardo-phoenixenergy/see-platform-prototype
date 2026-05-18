@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useChannelMessages } from '@/hooks/use-comms'
+import { useThreadReplies } from '@/hooks/use-comms'
 import { type ChannelMessage } from '@/hooks/use-comms'
 import { MessageItem } from './message-item'
 import { MessageComposer } from './message-composer'
@@ -38,9 +38,8 @@ function ThreadMessages({
 }) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Fetch replies for this parent message directly
-  const { data, isLoading } = useChannelMessages(channelId, true)
-  const replies = (data ?? []).filter((m) => m.parentMessageId === parentMessageId)
+  const { data, isLoading } = useThreadReplies(parentMessageId)
+  const replies = data ?? []
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -91,7 +90,7 @@ export function ThreadDrawer({ rootMessage, channelId, members, membersList, cur
       exit={{ x: '100%', opacity: 0 }}
       transition={{ type: 'spring', damping: 28, stiffness: 300 }}
       className={cn(
-        'fixed right-0 top-14 bottom-0 w-[480px] z-30',
+        'absolute right-0 top-0 bottom-0 w-[480px] z-20',
         'bg-white border-l border-ink-200 flex flex-col shadow-xl'
       )}
     >
@@ -122,7 +121,7 @@ export function ThreadDrawer({ rootMessage, channelId, members, membersList, cur
             }}
           />
           <p className="text-[11px] text-ink-400 mt-1">
-            {members[rootMessage.authorUserId] ?? rootMessage.author?.name ?? 'Unknown'} ·{' '}
+            {(rootMessage.authorUserId ? (members[rootMessage.authorUserId] ?? rootMessage.author?.name) : null) ?? 'System'} ·{' '}
             {new Date(rootMessage.createdAt).toLocaleString('en-ZA', {
               hour: '2-digit',
               minute: '2-digit',

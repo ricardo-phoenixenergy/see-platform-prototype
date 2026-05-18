@@ -829,7 +829,7 @@ async function main() {
     // -----------------------------------------------------------------------
 
     await db.message.create({ data: {
-      channelId: generalCh.id, authorUserId: marcus.id,
+      channelId: generalCh.id, authorUserId: null, isSystem: true,
       body: 'Project workspace created. Add your team members and start collaborating.',
       createdAt: daysAgo(540), updatedAt: daysAgo(540),
     }})

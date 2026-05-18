@@ -37,9 +37,9 @@ The build plan lives in `docs/plan/`. **Read these files at the start of every n
 
 ## Current milestone
 
-> **Currently working on:** M4.5 — Project Communications (Phase 3)
-> **Last completed:** Phase 2 complete — M3 Contractor Dashboard, M4 Project Management System (wizard, Logic Engine, workspace, milestone tracker, submission flow).
-> **Next:** M5 Verification Engine + M6 Admin Role (parallel after M4.5 lands)
+> **Currently working on:** M5 Verification Engine + M6 Admin Role (parallel, Phase 3)
+> **Last completed:** M4.5 — Project Communications fully complete (channels, threading, reactions, edit/delete, custom channels, client invite API, inbox mentions, message search, system messages with isSystem flag).
+> **Next:** M5 (contractor-side AI verification + tier engine) then M6 (full admin role)
 
 *Keep this updated as you progress. This single line orients every new session.*
 

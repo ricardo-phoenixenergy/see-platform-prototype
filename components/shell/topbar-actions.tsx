@@ -4,7 +4,7 @@
 // Separated from Topbar (server component) to allow useInboxSummary hook.
 
 import { useState } from 'react'
-import { Bell } from 'lucide-react'
+import { Inbox } from 'lucide-react'
 import { useInboxSummary } from '@/hooks/use-comms'
 import { InboxPanel } from '@/components/comms/inbox-panel'
 import { cn } from '@/lib/utils'
@@ -31,19 +31,7 @@ function InboxButton() {
         )}
         aria-label="Inbox"
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
-          />
-        </svg>
+        <Inbox className="h-4 w-4" strokeWidth={1.5} />
         {totalUnread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 h-3.5 min-w-3.5 px-0.5 flex items-center justify-center rounded-full bg-danger-500 text-[8px] font-semibold text-white">
             {totalUnread > 99 ? '99+' : totalUnread}
@@ -58,12 +46,6 @@ function InboxButton() {
 export function TopbarActions({ initials, name }: Props) {
   return (
     <div className="flex items-center gap-3">
-      <button
-        className="rounded-md p-1.5 text-ink-400 hover:bg-ink-50 hover:text-ink-700 transition-colors focus-visible:outline-none"
-        aria-label="Notifications"
-      >
-        <Bell className="h-4 w-4" strokeWidth={1.5} />
-      </button>
       <InboxButton />
       <div className="h-[1px] w-4 bg-ink-200 rotate-90" />
       <div

@@ -1044,8 +1044,9 @@ enum MembershipRole {
 model Message {
   id              String  @id @default(cuid())
   channelId       String
-  authorUserId    String
-  body            String // markdown content
+  authorUserId    String? // null for system messages
+  isSystem        Boolean @default(false)
+  body            String  // markdown content
   parentMessageId String? // thread reply
   isPinned        Boolean @default(false)
 
@@ -1058,7 +1059,7 @@ model Message {
   deletedAt DateTime? // soft delete
 
   channel       Channel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  author        User              @relation(fields: [authorUserId], references: [id])
+  author        User?             @relation(fields: [authorUserId], references: [id])
   parentMessage Message?          @relation("Replies", fields: [parentMessageId], references: [id], onDelete: Cascade)
   replies       Message[]         @relation("Replies")
   reactions     MessageReaction[]

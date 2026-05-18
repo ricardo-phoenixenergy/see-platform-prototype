@@ -68,6 +68,7 @@ export async function GET(
       id: msg.id,
       channelId: msg.channelId,
       authorUserId: msg.authorUserId,
+      isSystem: msg.isSystem,
       body: msg.body,
       parentMessageId: msg.parentMessageId,
       isPinned: msg.isPinned,
@@ -117,16 +118,16 @@ export async function POST(
   const mentionMatches = Array.from(body.body.matchAll(mentionPattern))
   const mentionedIds = mentionMatches.map((m) => m[1])
 
-  const mentionsData = mentionedIds.length > 0 ? mentionedIds : null
+  const mentionsData = mentionedIds.length > 0
+    ? mentionedIds.map((id) => ({ type: 'user' as const, userId: id }))
+    : null
   const message = await db.message.create({
     data: {
       channelId,
       authorUserId: userId,
       body: body.body,
       parentMessageId: body.parentMessageId ?? null,
-      // Prisma types Json fields as InputJsonValue which doesn't accept string[] directly
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mentions: mentionsData as any,
+      mentions: mentionsData ? JSON.parse(JSON.stringify(mentionsData)) : undefined,
     },
     include: {
       author: { select: { id: true, name: true, image: true } },
@@ -154,20 +155,20 @@ export async function POST(
       if (mentionedId === 'everyone') continue // skip @everyone for now
 
       try {
-        // Prisma v7 strict union types conflict between userId:string and companyId:string|null
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (db.notification.create as any)({
-          data: {
-            userId: mentionedId,
-            type: 'MESSAGE_MENTION',
-            title: 'You were mentioned',
-            body: `${session.user.name ?? 'Someone'} mentioned you in ${channel?.workspace.project.name ?? 'a project'}`,
-            link: `/api/channels/${channelId}/messages`,
-          },
-        })
-      } catch {
-        // Non-critical — don't fail the message post
-      }
+          await db.notification.create({
+            data: {
+              userId: mentionedId,
+              type: 'MESSAGE_MENTION',
+              title: 'You were mentioned',
+              body: `${session.user.name ?? 'Someone'} mentioned you in ${channel?.workspace.project.name ?? 'a project'}`,
+              link: channel?.workspace.project.id
+                ? `/contractor/projects/${channel.workspace.project.id}/comms/${channelId}`
+                : null,
+            },
+          })
+        } catch {
+          // Non-critical — don't fail the message post
+        }
     }
   }
 

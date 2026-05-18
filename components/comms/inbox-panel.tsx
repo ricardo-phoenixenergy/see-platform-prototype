@@ -1,13 +1,12 @@
 'use client'
 // components/comms/inbox-panel.tsx
-// Dropdown panel showing unread messages across all channels.
 
 import { useState, useEffect, useRef } from 'react'
-import { useInboxSummary } from '@/hooks/use-comms'
+import { useInboxSummary, useInboxMentions } from '@/hooks/use-comms'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
-import { Inbox } from 'lucide-react'
+import { Inbox, AtSign } from 'lucide-react'
 
 type Tab = 'mentions' | 'unread' | 'all'
 
@@ -18,10 +17,10 @@ type Props = {
 export function InboxPanel({ onClose }: Props) {
   const [tab, setTab] = useState<Tab>('unread')
   const { data, isLoading } = useInboxSummary()
+  const { data: mentionData, isLoading: mentionsLoading } = useInboxMentions()
   const router = useRouter()
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Close on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
@@ -33,12 +32,18 @@ export function InboxPanel({ onClose }: Props) {
   }, [onClose])
 
   const channels = data?.channels ?? []
+  const mentions = mentionData ?? []
 
-  const displayChannels = tab === 'unread'
-    ? channels.filter((ch) => ch.unreadCount > 0)
-    : tab === 'mentions'
-    ? [] // mentions would require a separate API — show empty for prototype
-    : channels
+  const displayChannels =
+    tab === 'unread'
+      ? channels.filter((ch) => ch.unreadCount > 0)
+      : tab === 'mentions'
+      ? []
+      : channels
+
+  const isListLoading = tab === 'mentions' ? mentionsLoading : isLoading
+  const isEmpty =
+    tab === 'mentions' ? mentions.length === 0 : displayChannels.length === 0
 
   return (
     <div
@@ -72,24 +77,66 @@ export function InboxPanel({ onClose }: Props) {
             )}
           >
             {t}
+            {t === 'mentions' && mentions.filter((m) => !m.readAt).length > 0 && (
+              <span className="ml-1 inline-flex h-3.5 min-w-3.5 px-0.5 items-center justify-center rounded-full bg-accent-500 text-[8px] font-semibold text-white">
+                {mentions.filter((m) => !m.readAt).length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       {/* Content */}
       <div className="max-h-80 overflow-y-auto">
-        {isLoading ? (
+        {isListLoading ? (
           <div className="p-4 space-y-3">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="h-12 rounded-md bg-ink-50 animate-pulse" />
             ))}
           </div>
-        ) : displayChannels.length === 0 ? (
+        ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center py-10 gap-2">
-            <Inbox className="h-8 w-8 text-ink-200" strokeWidth={1} />
+            {tab === 'mentions' ? (
+              <AtSign className="h-8 w-8 text-ink-200" strokeWidth={1} />
+            ) : (
+              <Inbox className="h-8 w-8 text-ink-200" strokeWidth={1} />
+            )}
             <p className="text-sm text-ink-400">
               {tab === 'mentions' ? 'No mentions' : tab === 'unread' ? 'All caught up' : 'No messages'}
             </p>
+          </div>
+        ) : tab === 'mentions' ? (
+          <div className="divide-y divide-ink-50">
+            {mentions.map((mention) => (
+              <button
+                key={mention.id}
+                onClick={() => {
+                  if (mention.link) router.push(mention.link)
+                  onClose()
+                }}
+                className="w-full text-left px-4 py-3 hover:bg-ink-25 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <AtSign className="h-3 w-3 text-accent-500 flex-shrink-0" strokeWidth={2} />
+                      <span className="text-xs font-semibold text-ink-800 truncate">
+                        {mention.title}
+                      </span>
+                    </div>
+                    <p className="text-xs text-ink-500 truncate mt-0.5">{mention.body}</p>
+                  </div>
+                  <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                    <span className="text-[10px] text-ink-400">
+                      {formatDistanceToNow(new Date(mention.createdAt), { addSuffix: true })}
+                    </span>
+                    {!mention.readAt && (
+                      <span className="h-2 w-2 rounded-full bg-accent-500" />
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
         ) : (
           <div className="divide-y divide-ink-50">

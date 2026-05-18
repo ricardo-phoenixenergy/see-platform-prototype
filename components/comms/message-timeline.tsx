@@ -72,6 +72,9 @@ function buildGroups(messages: ChannelMessage[]): MessageGroup[] {
     const collapsed =
       prev != null &&
       !prev.deletedAt &&
+      !msg.isSystem &&
+      !prev.isSystem &&
+      prev.authorUserId !== null &&
       prev.authorUserId === msg.authorUserId &&
       msgDate.getTime() - new Date(prev.createdAt).getTime() < 5 * 60 * 1000
 
