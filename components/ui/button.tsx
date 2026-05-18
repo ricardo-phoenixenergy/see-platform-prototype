@@ -28,11 +28,10 @@ const buttonVariants = cva(
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants> & {
     loading?: boolean
-    asChild?: boolean
   }
 
 const Button = forwardRef<HTMLButtonElement, Props>(
-  ({ className, variant, size, loading, children, disabled, asChild: _asChild, ...props }, ref) => (
+  ({ className, variant, size, loading, children, disabled, ...props }, ref) => (
     <button
       ref={ref}
       className={cn(buttonVariants({ variant, size }), className)}

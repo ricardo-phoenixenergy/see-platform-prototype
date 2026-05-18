@@ -8,11 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
     "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
-    "db:reset": "prisma migrate reset --force",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
     "db:seed:demo": "prisma db seed",
-    "db:seed:empty": "tsx prisma/seed-empty.ts"
+    "db:seed:empty": "tsx prisma/seed-empty.ts",
+    "db:reset": "prisma migrate reset --force && npm run db:seed:demo",
+    "db:studio": "prisma studio",
+    "prepare": "husky"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
