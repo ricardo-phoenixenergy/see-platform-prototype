@@ -1,5 +1,5 @@
 'use client'
-// Client component: manages sidebar collapse state
+// Client component: sidebar collapse state, active nav detection
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -7,78 +7,145 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Wordmark } from '@/components/brand/wordmark'
 import {
-  LayoutDashboard, FolderOpen, ShoppingBag, Wallet, Building2,
-  ChevronLeft, ChevronRight, Wrench,
+  LayoutDashboard, FolderOpen, ShoppingBag, Wallet,
+  Building2, ChevronLeft, ChevronRight, Wrench,
 } from 'lucide-react'
 
-type NavItem = {
+export type NavItem = {
   label: string
   href: string
   icon: React.ElementType
 }
 
-type Props = {
-  navItems: NavItem[]
+type TierInfo = {
+  tier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
+  tokens: number
 }
 
-export function Sidebar({ navItems }: Props) {
+type Props = {
+  navItems: NavItem[]
+  tierInfo?: TierInfo
+}
+
+const TIER_COLOURS: Record<string, string> = {
+  BRONZE: '#A56A3E',
+  SILVER: '#8B95A0',
+  GOLD: '#C9A03E',
+  PLATINUM: '#6E7A8A',
+}
+
+export function Sidebar({ navItems, tierInfo }: Props) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
 
   return (
     <aside
       className={cn(
-        'flex flex-col border-r border-ink-200 bg-white transition-all duration-200 flex-shrink-0',
-        collapsed ? 'w-16' : 'w-60'
+        'flex flex-col border-r border-ink-200 bg-white transition-[width] duration-200 ease-in-out flex-shrink-0 overflow-hidden',
+        collapsed ? 'w-[60px]' : 'w-[220px]'
       )}
     >
       {/* Header */}
-      <div className="flex h-14 items-center justify-between px-4 border-b border-ink-200">
+      <div className="flex h-14 items-center justify-between px-4 border-b border-ink-200 flex-shrink-0">
         {!collapsed && <Wordmark size="sm" />}
         <button
-          onClick={() => setCollapsed((c) => !c)}
-          className="ml-auto rounded-md p-1.5 text-ink-500 hover:bg-ink-50 hover:text-ink-900 transition-colors focus-visible:outline-none focus-visible:shadow-ring"
+          onClick={() => setCollapsed(c => !c)}
+          className={cn(
+            'rounded-md p-1.5 text-ink-400 hover:bg-ink-50 hover:text-ink-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/20',
+            collapsed && 'mx-auto'
+          )}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {collapsed
+            ? <ChevronRight className="h-4 w-4" />
+            : <ChevronLeft className="h-4 w-4" />
+          }
         </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 overflow-y-auto">
+      <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
         <ul className="space-y-0.5 px-2">
-          {navItems.map((item) => {
+          {navItems.map(item => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             const Icon = item.icon
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  title={collapsed ? item.label : undefined}
                   className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                    collapsed ? 'justify-center px-2' : '',
+                    'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
+                    collapsed ? 'justify-center' : '',
                     isActive
                       ? 'bg-ink-50 text-ink-900 font-medium'
-                      : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900'
+                      : 'text-ink-500 hover:bg-ink-50 hover:text-ink-800'
                   )}
-                  title={collapsed ? item.label : undefined}
                 >
                   <Icon
-                    className={cn('h-4 w-4 flex-shrink-0', isActive ? 'text-accent-500' : 'text-ink-400')}
+                    className={cn(
+                      'h-4 w-4 flex-shrink-0',
+                      isActive ? 'text-accent-500' : 'text-ink-400'
+                    )}
                     strokeWidth={1.5}
                   />
-                  {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && (
+                    <span className="truncate">{item.label}</span>
+                  )}
                 </Link>
               </li>
             )
           })}
         </ul>
       </nav>
+
+      {/* Status footer */}
+      {tierInfo && (
+        <div className={cn(
+          'border-t border-ink-100 py-3 px-3 flex-shrink-0',
+          collapsed ? 'flex flex-col items-center gap-2' : 'space-y-2'
+        )}>
+          {/* Tier badge */}
+          <div
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5',
+              collapsed ? '' : 'w-full'
+            )}
+            style={{
+              backgroundColor: `${TIER_COLOURS[tierInfo.tier] ?? '#8B95A0'}18`,
+              border: `1px solid ${TIER_COLOURS[tierInfo.tier] ?? '#8B95A0'}40`,
+            }}
+          >
+            <div
+              className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: TIER_COLOURS[tierInfo.tier] ?? '#8B95A0' }}
+            />
+            {!collapsed && (
+              <span
+                className="text-[10px] font-semibold tracking-widest uppercase"
+                style={{ color: TIER_COLOURS[tierInfo.tier] ?? '#8B95A0' }}
+              >
+                {tierInfo.tier}
+              </span>
+            )}
+          </div>
+
+          {/* Token balance */}
+          {!collapsed && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-ink-400">Tokens</span>
+              <span className="text-xs font-semibold text-ink-700 tabular-nums">
+                {tierInfo.tokens.toLocaleString()}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </aside>
   )
 }
 
-// Pre-defined nav items for each role
+// Pre-defined nav items per role
 export const CONTRACTOR_NAV: NavItem[] = [
   { label: 'Dashboard', href: '/contractor', icon: LayoutDashboard },
   { label: 'Projects', href: '/contractor/projects', icon: FolderOpen },
