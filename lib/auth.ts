@@ -74,6 +74,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token
     },
     session({ session, token }) {
+      // token.sub is the user ID (set automatically by Auth.js from authorize()'s id field)
+      if (token.sub) session.user.id = token.sub
       session.user.role = token['role'] as string
       session.user.companyId = token['companyId'] as string
       session.user.memberships = token['memberships'] as {
