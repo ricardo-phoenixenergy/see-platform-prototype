@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { BidForm } from '@/components/marketplace/bid-form'
 import Link from 'next/link'
 
@@ -20,9 +20,9 @@ type RfqData = {
 export default function OpportunityDetailPage({
   params,
 }: {
-  params: { rfqId: string }
+  params: Promise<{ rfqId: string }>
 }) {
-  const { rfqId } = params
+  const { rfqId } = use(params)
   const [rfq, setRfq] = useState<RfqData | null>(null)
   const [companyId, setCompanyId] = useState('')
   const [submitted, setSubmitted] = useState(false)
