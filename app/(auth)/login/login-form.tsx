@@ -21,6 +21,7 @@ const DEMO_USERS = [
   { name: 'Marcus Adebayo', role: 'Contractor — Silver tier', email: 'marcus@adebayorenewables.co.za', destination: '/contractor' },
   { name: 'Lerato Mokoena', role: 'Service Provider', email: 'lerato@mokoenaeng.co.za', destination: '/service-provider' },
   { name: 'Sipho Dlamini', role: 'End-Client — Enterprise', email: 'sipho@spazaholdings.co.za', destination: '/client' },
+  { name: 'Tess de Wet', role: 'End-Client — Standard', email: 'tess@durbanvillemall.co.za', destination: '/client' },
   { name: 'Erin Berman-Levy', role: 'Platform Admin', email: 'erin@see.platform', destination: '/admin' },
 ]
 

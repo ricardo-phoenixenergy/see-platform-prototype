@@ -95,6 +95,17 @@ async function main() {
     },
   })
 
+  const tess = await db.user.upsert({
+    where: { email: 'tess@durbanvillemall.co.za' },
+    update: {},
+    create: {
+      email: 'tess@durbanvillemall.co.za',
+      name: 'Tess de Wet',
+      emailVerified: new Date(),
+      passwordHash,
+    },
+  })
+
   console.log('  ✓ Users')
 
   // -------------------------------------------------------------------------
@@ -222,6 +233,12 @@ async function main() {
     where: { userId_companyId: { userId: naledi.id, companyId: adebayo.id } },
     update: {},
     create: { userId: naledi.id, companyId: adebayo.id, role: 'CONTRACTOR', isOwner: false },
+  })
+
+  await db.membership.upsert({
+    where: { userId_companyId: { userId: tess.id, companyId: durbanville.id } },
+    update: {},
+    create: { userId: tess.id, companyId: durbanville.id, role: 'CLIENT', isOwner: true },
   })
 
   console.log('  ✓ Memberships')
@@ -788,6 +805,118 @@ async function main() {
   console.log('  ✓ RFQs, bids, job card (marketplace demo data)')
 
   // -------------------------------------------------------------------------
+  // O&M License — Kruger Farm (AI tier, ACTIVE — for contractor monitoring + client demo)
+  // -------------------------------------------------------------------------
+
+  await db.omLicense.upsert({
+    where: { id: 'license-kruger-ai' },
+    update: {},
+    create: {
+      id: 'license-kruger-ai',
+      projectId: projectKruger.id,
+      licenseeCompanyId: kruger.id,
+      viewerType: 'CLIENT',
+      tier: 'AI',
+      status: 'ACTIVE',
+      monthlyFeeCents: 1_200_00,
+      activatedAt: daysAgo(180),
+      nextBillingAt: daysFromNow(15),
+      resellerCompanyId: adebayo.id,
+      commissionRate: 0.20,
+    },
+  })
+
+  await db.omLicense.upsert({
+    where: { id: 'license-kruger-epc' },
+    update: {},
+    create: {
+      id: 'license-kruger-epc',
+      projectId: projectKruger.id,
+      licenseeCompanyId: adebayo.id,
+      viewerType: 'EPC',
+      tier: 'AI',
+      status: 'ACTIVE',
+      monthlyFeeCents: 0,
+      activatedAt: daysAgo(180),
+      nextBillingAt: daysFromNow(15),
+    },
+  })
+
+  console.log('  ✓ O&M licenses (Kruger Farm — AI tier, active)')
+
+  // -------------------------------------------------------------------------
+  // O&M Events — Kruger Farm (maintenance history)
+  // -------------------------------------------------------------------------
+
+  const omEvents = [
+    {
+      id: 'ome-1', projectId: projectKruger.id, type: 'MAINTENANCE' as const,
+      title: 'Quarterly inverter service', description: 'SunSynk inverter firmware update + capacitor check.',
+      scheduledAt: daysAgo(45), completedAt: daysAgo(44),
+    },
+    {
+      id: 'ome-2', projectId: projectKruger.id, type: 'CLEANING' as const,
+      title: 'Panel cleaning — North array',
+      description: 'Dust accumulation identified via performance drop. 48 panels cleaned.',
+      scheduledAt: daysAgo(22), completedAt: daysAgo(21),
+    },
+    {
+      id: 'ome-3', projectId: projectKruger.id, type: 'INSPECTION' as const,
+      title: 'Semi-annual electrical inspection',
+      description: 'Full installation inspection per COC requirements. No defects found.',
+      scheduledAt: daysFromNow(14),
+    },
+    {
+      id: 'ome-4', projectId: projectKruger.id, type: 'CLEANING' as const,
+      title: 'Panel cleaning — South array',
+      scheduledAt: daysFromNow(28),
+    },
+  ]
+
+  for (const event of omEvents) {
+    await db.omEvent.upsert({
+      where: { id: event.id },
+      update: {},
+      create: event,
+    })
+  }
+
+  console.log('  ✓ O&M events (Kruger Farm)')
+
+  // -------------------------------------------------------------------------
+  // Project Documents — Kruger Farm
+  // -------------------------------------------------------------------------
+
+  const projectDocs = [
+    {
+      id: 'doc-kruger-1', projectId: projectKruger.id, uploadedBy: marcus.id,
+      category: 'Commissioning Certificate', name: 'Commissioning Certificate — Kruger Farm 120kW.pdf',
+      url: 'https://example.com/seed/kruger-commissioning-cert.pdf', fileSize: 1_200_000,
+    },
+    {
+      id: 'doc-kruger-2', projectId: projectKruger.id, uploadedBy: marcus.id,
+      category: 'Warranty',
+      name: 'SunSynk 8kW Inverter Warranty Registration.pdf',
+      url: 'https://example.com/seed/kruger-inverter-warranty.pdf', fileSize: 340_000,
+    },
+    {
+      id: 'doc-kruger-3', projectId: projectKruger.id, uploadedBy: marcus.id,
+      category: 'O&M Manual', name: 'Operations & Maintenance Manual — Kruger Hybrid System.pdf',
+      url: 'https://example.com/seed/kruger-om-manual.pdf', fileSize: 4_800_000,
+    },
+  ]
+
+  for (const doc of projectDocs) {
+    await db.projectDocument.upsert({
+      where: { id: doc.id },
+      update: {},
+      create: doc,
+    })
+  }
+
+  console.log('  ✓ Project documents (Kruger Farm)')
+
+  // -------------------------------------------------------------------------
   // O&M Readings — Kruger Family Farm (30 days of daily data)
   // -------------------------------------------------------------------------
 
@@ -1304,7 +1433,7 @@ async function main() {
   } // end if (!existingWorkspace)
 
   console.log('\n✅ Demo seed complete!')
-  console.log(`   Users: 5 | Companies: 6 | Projects: 3 | Milestones: 8 | Hardware: 5 | O&M readings: 30 | News: 5`)
+  console.log(`   Users: 6 | Companies: 6 | Projects: 3 | Milestones: 8 | Hardware: 5 | O&M readings: 30 | News: 5`)
 }
 
 main()
