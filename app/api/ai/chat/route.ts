@@ -7,6 +7,8 @@ import { db } from '@/lib/db'
 import { buildSystemPrompt, type ChatContext } from '@/lib/ai/system-prompt'
 import { AI_TOOL_DEFINITIONS, executeToolCall } from '@/lib/ai/tools'
 
+const MODEL = process.env['ANTHROPIC_MODEL'] ?? 'claude-sonnet-4-20250514'
+
 const anthropic = new Anthropic()
 
 export async function POST(req: NextRequest) {
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
         let continueLoop = true
         while (continueLoop) {
           const response = await anthropic.messages.create({
-            model: 'claude-sonnet-4-20250514',
+            model: MODEL,
             max_tokens: 1024,
             system: systemPrompt,
             tools: AI_TOOL_DEFINITIONS as Anthropic.Messages.Tool[],
