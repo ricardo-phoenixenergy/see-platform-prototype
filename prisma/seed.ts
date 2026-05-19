@@ -106,6 +106,17 @@ async function main() {
     },
   })
 
+  const tumi = await db.user.upsert({
+    where: { email: 'tumi@bnsolar.co.za' },
+    update: {},
+    create: { email: 'tumi@bnsolar.co.za', name: 'Tumi Maboe', emailVerified: new Date(), passwordHash },
+  })
+  const johan = await db.user.upsert({
+    where: { email: 'johan@solaracegroup.co.za' },
+    update: {},
+    create: { email: 'johan@solaracegroup.co.za', name: 'Johan Pretorius', emailVerified: new Date(), passwordHash },
+  })
+
   console.log('  ✓ Users')
 
   // -------------------------------------------------------------------------
@@ -199,6 +210,22 @@ async function main() {
     },
   })
 
+  const bnsolar = await db.company.upsert({
+    where: { id: 'company-bnsolar' },
+    update: {},
+    create: { id: 'company-bnsolar', name: 'BN Solar', type: 'CONTRACTOR', registrationNo: '2024/098765/07', beeeLevel: 4, about: 'Residential and small commercial solar specialist based in Cape Town.', phone: '+27 21 555 0123', email: 'info@bnsolar.co.za' },
+  })
+  const solarace = await db.company.upsert({
+    where: { id: 'company-solarace' },
+    update: {},
+    create: { id: 'company-solarace', name: 'Solar Ace Group', type: 'CONTRACTOR', registrationNo: '2012/445566/07', beeeLevel: 2, about: 'Large-scale C&I and utility solar EPC with 22 completed projects.', phone: '+27 31 456 7890', email: 'info@solaracegroup.co.za' },
+  })
+  const manchester = await db.company.upsert({
+    where: { id: 'company-manchester' },
+    update: {},
+    create: { id: 'company-manchester', name: 'Manchester Restaurant Group', type: 'END_CLIENT', registrationNo: '2018/334455/06', about: 'Small restaurant group, 3 Sandton locations.', phone: '+27 11 883 1234', email: 'ops@manchesterrestaurants.co.za' },
+  })
+
   console.log('  ✓ Companies')
 
   // -------------------------------------------------------------------------
@@ -240,6 +267,13 @@ async function main() {
     update: {},
     create: { userId: tess.id, companyId: durbanville.id, role: 'CLIENT', isOwner: true },
   })
+
+  await db.membership.upsert({ where: { userId_companyId: { userId: tumi.id, companyId: bnsolar.id } }, update: {}, create: { userId: tumi.id, companyId: bnsolar.id, role: 'CONTRACTOR', isOwner: true } })
+  await db.membership.upsert({ where: { userId_companyId: { userId: johan.id, companyId: solarace.id } }, update: {}, create: { userId: johan.id, companyId: solarace.id, role: 'CONTRACTOR', isOwner: true } })
+  await db.tierStatus.upsert({ where: { companyId: bnsolar.id }, update: {}, create: { companyId: bnsolar.id, tier: 'BRONZE', compliantProjectCount: 1, pointsToNextTier: 9 } })
+  await db.tierStatus.upsert({ where: { companyId: solarace.id }, update: {}, create: { companyId: solarace.id, tier: 'GOLD', compliantProjectCount: 22, pointsToNextTier: 3 } })
+  await db.walletBalance.upsert({ where: { companyId: bnsolar.id }, update: {}, create: { companyId: bnsolar.id, tokens: 1200, fiatCents: 0 } })
+  await db.walletBalance.upsert({ where: { companyId: solarace.id }, update: {}, create: { companyId: solarace.id, tokens: 48000, fiatCents: 0 } })
 
   console.log('  ✓ Memberships')
 
@@ -464,6 +498,10 @@ async function main() {
     },
   })
 
+  const siteSandton = await db.site.upsert({ where: { id: 'site-sandton' }, update: {}, create: { id: 'site-sandton', addressLine: '88 Maude Street', city: 'Sandton', province: 'Gauteng', latitude: -26.1076, longitude: 28.0567, irradianceKwhM2Day: 5.6 } })
+  const siteBoksburg = await db.site.upsert({ where: { id: 'site-boksburg' }, update: {}, create: { id: 'site-boksburg', addressLine: '14 Atlas Road', city: 'Boksburg', province: 'Gauteng', latitude: -26.2163, longitude: 28.2614, irradianceKwhM2Day: 5.7 } })
+  const siteManchester = await db.site.upsert({ where: { id: 'site-manchester' }, update: {}, create: { id: 'site-manchester', addressLine: '22 Rivonia Road', city: 'Sandton', province: 'Gauteng', latitude: -26.1052, longitude: 28.0578, irradianceKwhM2Day: 5.6 } })
+
   console.log('  ✓ Sites')
 
   // -------------------------------------------------------------------------
@@ -503,9 +541,13 @@ async function main() {
     },
   })
 
-  await db.project.upsert({
+  const projectDurbanville = await db.project.upsert({
     where: { id: 'project-durbanville' },
-    update: {},
+    update: {
+      stage: 'OPERATIONAL',
+      completionPercentage: 100,
+      completedAt: daysAgo(21),
+    },
     create: {
       id: 'project-durbanville',
       name: 'Durbanville Mall Solar PPA',
@@ -514,14 +556,15 @@ async function main() {
       siteId: siteDurbanville.id,
       technology: 'SOLAR_PV',
       gridConnectionStatus: 'GRID_TIED',
-      systemSizeKw: 850,
+      systemSizeKw: 290,
       dealStructure: 'PPA',
       ppaTariffCents: 185,
-      stage: 'DEVELOPMENT',
+      stage: 'OPERATIONAL',
       templateSnapshot,
       templateVersion: 1,
       clientNeeds: 'Long-term energy cost certainty. Mall operates 6am–10pm seven days a week.',
-      completionPercentage: 15,
+      completionPercentage: 100,
+      completedAt: daysAgo(21),
     },
   })
 
@@ -547,6 +590,22 @@ async function main() {
       completionPercentage: 100,
       completedAt: daysAgo(90),
     },
+  })
+
+  const projectSandton = await db.project.upsert({
+    where: { id: 'project-sandton' },
+    update: {},
+    create: { id: 'project-sandton', name: 'Spaza Sandton Office Solar', contractorCompanyId: adebayo.id, clientCompanyId: spaza.id, siteId: siteSandton.id, technology: 'SOLAR_PV', gridConnectionStatus: 'GRID_TIED', systemSizeKw: 220, dealStructure: 'PPA', ppaTariffCents: 192, stage: 'OPERATIONAL', templateSnapshot: [], templateVersion: 1, clientNeeds: 'Reduce grid reliance at flagship Sandton office. ESG reporting requirement.', completionPercentage: 100, completedAt: daysAgo(545) },
+  })
+  const projectBoksburg = await db.project.upsert({
+    where: { id: 'project-boksburg' },
+    update: {},
+    create: { id: 'project-boksburg', name: 'Spaza Boksburg Warehouse Solar + BESS', contractorCompanyId: adebayo.id, clientCompanyId: spaza.id, siteId: siteBoksburg.id, technology: 'HYBRID', gridConnectionStatus: 'GRID_TIED_WITH_BACKUP', systemSizeKw: 850, storageSizeKwh: 800, dealStructure: 'PPA', ppaTariffCents: 188, stage: 'OPERATIONAL', templateSnapshot: [], templateVersion: 1, clientNeeds: 'Cold chain backup power and peak demand reduction for distribution warehouse.', completionPercentage: 100, completedAt: daysAgo(28) },
+  })
+  await db.project.upsert({
+    where: { id: 'project-manchester' },
+    update: {},
+    create: { id: 'project-manchester', name: 'Manchester Sandton Restaurant Solar', contractorCompanyId: adebayo.id, clientCompanyId: manchester.id, siteId: siteManchester.id, technology: 'SOLAR_PV', gridConnectionStatus: 'GRID_TIED', systemSizeKw: 35, dealStructure: 'OUTRIGHT', contractValueCents: 42_000_00, stage: 'OPERATIONAL', templateSnapshot: [], templateVersion: 1, clientNeeds: 'Reduce electricity costs. Client did not want the monitoring dashboard.', completionPercentage: 100, completedAt: daysAgo(200) },
   })
 
   console.log('  ✓ Projects')
@@ -844,6 +903,70 @@ async function main() {
 
   console.log('  ✓ O&M licenses (Kruger Farm — AI tier, active)')
 
+  // PlatformBankAccount
+  await db.platformBankAccount.upsert({ where: { id: 'bank-see-fnb' }, update: {}, create: { id: 'bank-see-fnb', accountName: 'SEE Platform Operations (Pty) Ltd', bankName: 'First National Bank', accountNumber: '62850012345', branchCode: '250655', accountType: 'Business Cheque', swiftCode: 'FIRNZAJJ', isActive: true, notes: 'Primary ZAR account' } })
+  console.log('  ✓ Platform bank account')
+
+  // EnterpriseLicense — Spaza Holdings (covers Soweto + Sandton, NOT Boksburg)
+  const enterpriseLicense = await db.enterpriseLicense.upsert({
+    where: { contractReference: 'ENT-2025-SPAZA-001' },
+    update: {},
+    create: { id: 'enterprise-spaza', clientCompanyId: spaza.id, status: 'ACTIVE', contractReference: 'ENT-2025-SPAZA-001', contractStartDate: daysAgo(240), reviewCadence: 'ANNUAL', nextReviewDate: daysFromNow(125), baseMonthlyFeeCents: 850_000, perSeatMonthlyFeeCents: 25_000, perIntegrationFees: { OUTBOUND_WEBHOOK: 120_000, SCHEDULED_EXPORT: 80_000 }, usageRates: { apiCallsPer1000Cents: 50 }, oneTimeSetupFeeCents: 500_000, oneTimeSetupInvoiced: true, resellerCompanyId: adebayo.id, negotiatedCommissionRate: 0.10, notes: 'MSA signed 2025-09-20. Annual review.', activatedAt: daysAgo(240) },
+  })
+  await db.enterpriseProjectScope.upsert({ where: { licenseId_projectId: { licenseId: enterpriseLicense.id, projectId: projectAlpha.id } }, update: {}, create: { licenseId: enterpriseLicense.id, projectId: projectAlpha.id } })
+  await db.enterpriseProjectScope.upsert({ where: { licenseId_projectId: { licenseId: enterpriseLicense.id, projectId: projectSandton.id } }, update: {}, create: { licenseId: enterpriseLicense.id, projectId: projectSandton.id } })
+  await db.enterpriseIntegration.upsert({ where: { id: 'ent-int-webhook' }, update: {}, create: { id: 'ent-int-webhook', licenseId: enterpriseLicense.id, type: 'OUTBOUND_WEBHOOK', status: 'ACTIVE', config: { url: 'https://erp.spazaholdings.co.za/webhooks/see', events: ['alert.raised', 'milestone.hit'] }, lastActivityAt: daysAgo(1), monthlyFeeCents: 120_000 } })
+  await db.enterpriseIntegration.upsert({ where: { id: 'ent-int-export' }, update: {}, create: { id: 'ent-int-export', licenseId: enterpriseLicense.id, type: 'SCHEDULED_EXPORT', status: 'ACTIVE', config: { destination: 's3://spaza-analytics/see/', format: 'CSV', schedule: 'daily 01:00' }, lastActivityAt: daysAgo(1), monthlyFeeCents: 80_000 } })
+  await db.enterpriseUsageRecord.upsert({ where: { licenseId_period_metric: { licenseId: enterpriseLicense.id, period: new Date('2026-05-01'), metric: 'API_CALLS' } }, update: {}, create: { licenseId: enterpriseLicense.id, period: new Date('2026-05-01'), metric: 'API_CALLS', units: 47392, billedCents: Math.round(47392 / 1000 * 50) } })
+  await db.enterpriseUsageRecord.upsert({ where: { licenseId_period_metric: { licenseId: enterpriseLicense.id, period: new Date('2026-05-01'), metric: 'WEBHOOK_DELIVERIES' } }, update: {}, create: { licenseId: enterpriseLicense.id, period: new Date('2026-05-01'), metric: 'WEBHOOK_DELIVERIES', units: 1284, billedCents: 0 } })
+  console.log('  ✓ Enterprise license (Spaza Holdings)')
+
+  // OmLicenses — Sandton: EPC + CLIENT both ACTIVE (Adebayo resells)
+  await db.omLicense.upsert({ where: { id: 'license-sandton-epc' }, update: {}, create: { id: 'license-sandton-epc', projectId: projectSandton.id, licenseeCompanyId: adebayo.id, viewerType: 'EPC', tier: 'AI', status: 'ACTIVE', monthlyFeeCents: 0, activatedAt: daysAgo(540), nextBillingAt: daysFromNow(20) } })
+  await db.omLicense.upsert({ where: { id: 'license-sandton-client' }, update: {}, create: { id: 'license-sandton-client', projectId: projectSandton.id, licenseeCompanyId: spaza.id, viewerType: 'CLIENT', tier: 'AI', status: 'ACTIVE', monthlyFeeCents: 180_000, activatedAt: daysAgo(540), nextBillingAt: daysFromNow(20), resellerCompanyId: adebayo.id, commissionRate: 0.20 } })
+  // Manchester: EPC ACTIVE (self-licensed, Flow B)
+  await db.omLicense.upsert({ where: { id: 'license-manchester-epc' }, update: {}, create: { id: 'license-manchester-epc', projectId: 'project-manchester', licenseeCompanyId: adebayo.id, viewerType: 'EPC', tier: 'BASIC', status: 'ACTIVE', monthlyFeeCents: 35_000, activatedAt: daysAgo(190), nextBillingAt: daysFromNow(10) } })
+  console.log('  ✓ O&M licenses (Sandton + Manchester)')
+
+  // LicenseCommission history — Sandton (5 PAID + 1 ACCRUED)
+  const commissionMonths = [
+    { period: new Date('2025-12-01'), status: 'PAID' as const, paidAt: daysAgo(135) },
+    { period: new Date('2026-01-01'), status: 'PAID' as const, paidAt: daysAgo(104) },
+    { period: new Date('2026-02-01'), status: 'PAID' as const, paidAt: daysAgo(76) },
+    { period: new Date('2026-03-01'), status: 'PAID' as const, paidAt: daysAgo(45) },
+    { period: new Date('2026-04-01'), status: 'PAID' as const, paidAt: daysAgo(14) },
+    { period: new Date('2026-05-01'), status: 'ACCRUED' as const, paidAt: null },
+  ]
+  for (const cm of commissionMonths) {
+    await db.licenseCommission.upsert({ where: { licenseId_period: { licenseId: 'license-sandton-client', period: cm.period } }, update: {}, create: { licenseId: 'license-sandton-client', resellerCompanyId: adebayo.id, period: cm.period, amountCents: 36_000, status: cm.status, paidAt: cm.paidAt } })
+  }
+  console.log('  ✓ License commissions (Sandton)')
+
+  // Historical invoice + payment (Kruger Farm AI license activation, paid 6 months ago)
+  await db.invoice.upsert({
+    where: { invoiceNumber: 'SEE-INV-2025-0001' },
+    update: {},
+    create: {
+      id: 'inv-kruger-activation',
+      invoiceNumber: 'SEE-INV-2025-0001',
+      issuerType: 'PLATFORM',
+      issuerCompanyId: null,
+      recipientCompanyId: kruger.id,
+      status: 'PAID',
+      subtotalCents: 120_000,
+      vatRate: 0.15,
+      vatCents: 18_000,
+      totalCents: 138_000,
+      issuedAt: daysAgo(185),
+      dueDate: daysAgo(178),
+      paidAt: daysAgo(177),
+      notes: 'O&M AI License activation — Kruger Farm',
+      lineItems: { create: [{ description: 'O&M AI License — Kruger Farm (first month)', quantity: 1, unitPriceCents: 120_000, totalCents: 120_000, type: 'OM_LICENSE_ACTIVATION', relatedEntityId: 'license-kruger-ai' }] },
+      payments: { create: [{ id: 'pay-kruger-activation', rail: 'EFT', amountCents: 138_000, status: 'PAID', reference: 'SEE-KR001-2025', reconciledAt: daysAgo(177), bankReference: 'SEE-KR001-2025', expiresAt: daysAgo(171) }] },
+    },
+  })
+  console.log('  ✓ Historical invoice + payment (Kruger Farm)')
+
   // -------------------------------------------------------------------------
   // O&M Events — Kruger Farm (maintenance history)
   // -------------------------------------------------------------------------
@@ -943,6 +1066,26 @@ async function main() {
   }
 
   console.log('  ✓ O&M readings (30 days, Kruger Farm)')
+
+  // Sandton — 30 days
+  for (let i = 29; i >= 0; i--) {
+    const d = daysAgo(i)
+    const base = 880 + Math.sin(i * 0.3) * 120
+    await db.omReading.upsert({ where: { id: `reading-sandton-${i}` }, update: {}, create: { id: `reading-sandton-${i}`, projectId: projectSandton.id, inverterBrand: 'Victron', recordedAt: d, productionKwh: Math.round((base + Math.random() * 80) * 10) / 10, batterySoCPercent: null, consumptionKwh: Math.round((base * 0.75 + Math.random() * 60) * 10) / 10, irradianceWM2: Math.round(680 + Math.sin(i * 0.4) * 200 + Math.random() * 100) } })
+  }
+  // Boksburg — 28 days
+  for (let i = 27; i >= 0; i--) {
+    const d = daysAgo(i)
+    const base = 3400 + Math.sin(i * 0.25) * 500
+    await db.omReading.upsert({ where: { id: `reading-boksburg-${i}` }, update: {}, create: { id: `reading-boksburg-${i}`, projectId: projectBoksburg.id, inverterBrand: 'SunSynk', recordedAt: d, productionKwh: Math.round((base + Math.random() * 200) * 10) / 10, batterySoCPercent: Math.round(55 + Math.sin(i * 0.5) * 30 + Math.random() * 15), consumptionKwh: Math.round((base * 0.82 + Math.random() * 150) * 10) / 10, irradianceWM2: Math.round(700 + Math.sin(i * 0.35) * 220 + Math.random() * 120) } })
+  }
+  // Durbanville — 21 days
+  for (let i = 20; i >= 0; i--) {
+    const d = daysAgo(i)
+    const base = 1160 + Math.sin(i * 0.4) * 180
+    await db.omReading.upsert({ where: { id: `reading-durbanville-${i}` }, update: {}, create: { id: `reading-durbanville-${i}`, projectId: projectDurbanville.id, inverterBrand: 'Deye', recordedAt: d, productionKwh: Math.round((base + Math.random() * 100) * 10) / 10, batterySoCPercent: null, consumptionKwh: Math.round((base * 0.8 + Math.random() * 80) * 10) / 10, irradianceWM2: Math.round(640 + Math.sin(i * 0.4) * 190 + Math.random() * 80) } })
+  }
+  console.log('  ✓ O&M readings (Sandton, Boksburg, Durbanville)')
 
   // -------------------------------------------------------------------------
   // News Items
@@ -1433,7 +1576,7 @@ async function main() {
   } // end if (!existingWorkspace)
 
   console.log('\n✅ Demo seed complete!')
-  console.log(`   Users: 6 | Companies: 6 | Projects: 3 | Milestones: 8 | Hardware: 5 | O&M readings: 30 | News: 5`)
+  console.log(`   Users: 8 | Companies: 9 | Projects: 6 | Milestones: 8 | Hardware: 5 | O&M readings: 30+79 | News: 5 | EnterpriseLicense: 1 | OmLicenses: +3 | Commissions: 6 | Invoices: 1`)
 }
 
 main()
