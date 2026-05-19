@@ -2,7 +2,9 @@ import { auth } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import { getProject } from '@/server/queries/projects'
 import { getOmReadings } from '@/server/queries/client'
+import { getEpcLicense } from '@/server/queries/payments'
 import { PlantCharts } from '@/components/client/plant-charts'
+import { EpcMonitoringPaywall } from '@/components/contractor/epc-monitoring-paywall'
 import { Activity } from 'lucide-react'
 
 type Props = { params: Promise<{ id: string }> }
@@ -21,18 +23,30 @@ export default async function MonitoringPage({ params }: Props) {
         <Activity className="h-8 w-8 text-ink-300 mb-3" strokeWidth={1.5} />
         <p className="text-sm font-medium text-ink-900">Monitoring unlocks at Operational stage</p>
         <p className="text-xs text-ink-500 mt-1 max-w-sm">
-          O&M dashboards, plant performance, and prescriptive maintenance alerts will be available once this project reaches the Operational stage.
+          O&amp;M dashboards, plant performance, and prescriptive maintenance alerts will be available once this project reaches the Operational stage.
         </p>
       </div>
     )
   }
 
-  const readings = await getOmReadings(id)
+  const [epcLicense, readings] = await Promise.all([
+    getEpcLicense(id, session.user.companyId),
+    getOmReadings(id),
+  ])
+
+  if (!epcLicense) {
+    return (
+      <EpcMonitoringPaywall
+        projectId={id}
+        hasClient={!!project.clientCompanyId}
+      />
+    )
+  }
 
   return (
     <div className="p-6 overflow-y-auto h-full max-w-6xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-base font-semibold text-ink-900">O&M Monitoring</h2>
+        <h2 className="text-base font-semibold text-ink-900">O&amp;M Monitoring</h2>
         <p className="text-xs text-ink-500 mt-0.5">{project.name} · {project.systemSizeKw} kW · Last 30 days</p>
       </div>
 
@@ -49,7 +63,7 @@ export default async function MonitoringPage({ params }: Props) {
             consumptionKwh: r.consumptionKwh,
             irradianceWM2: r.irradianceWM2,
           }))}
-          tier="AI"
+          tier={epcLicense.tier}
         />
       )}
     </div>
