@@ -37,9 +37,9 @@ The build plan lives in `docs/plan/`. **Read these files at the start of every n
 
 ## Current milestone
 
-> **Currently working on:** M9 Payments + O&M Licensing Commercial Substrate
-> **Last completed:** M8 — End-Client Role + O&M Monitoring complete (plant dashboard paywall + active Recharts charts, portfolio, O&M schedule, documents, Enterprise dashboard for Spaza Holdings, contractor monitoring tab with real charts, Tess de Wet seeded).
-> **Next:** M9 (EFT payment flows, OmLicense activation animation, Tess license purchase demo, admin reconciliation queue, Enterprise Accounts management)
+> **Currently working on:** M10 SEE.AI Assistant + Polish Pass
+> **Last completed:** M9 — Payments + Licensing complete (EFT flow, EPC monitoring paywall, sell-to-client flow, license activation animation, admin reconciliation queue, contractor wallet, admin Enterprise Accounts with Act 4 scope addition).
+> **Next:** M10 (SEE.AI streaming chat, tool calls, global polish pass, Demo Mode toggle)
 
 *Keep this updated as you progress. This single line orients every new session.*
 
