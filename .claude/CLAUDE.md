@@ -37,9 +37,9 @@ The build plan lives in `docs/plan/`. **Read these files at the start of every n
 
 ## Current milestone
 
-> **Currently working on:** M8 End-Client Role + O&M Monitoring (Phase 3)
-> **Last completed:** M7 — Marketplaces complete (hardware marketplace browse/detail, service center SP directory, RFQ→bid→job-card lifecycle, SP role fully functional: dashboard/opportunities/Kanban job cards/deliverables/chat/profile, Zustand cart store).
-> **Next:** M8 (end-client plant dashboard, portfolio, O&M schedule, documents)
+> **Currently working on:** M9 Payments + O&M Licensing Commercial Substrate
+> **Last completed:** M8 — End-Client Role + O&M Monitoring complete (plant dashboard paywall + active Recharts charts, portfolio, O&M schedule, documents, Enterprise dashboard for Spaza Holdings, contractor monitoring tab with real charts, Tess de Wet seeded).
+> **Next:** M9 (EFT payment flows, OmLicense activation animation, Tess license purchase demo, admin reconciliation queue, Enterprise Accounts management)
 
 *Keep this updated as you progress. This single line orients every new session.*
 
