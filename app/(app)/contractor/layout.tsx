@@ -5,6 +5,7 @@ import { Topbar } from '@/components/shell/topbar'
 import { Sidebar, CONTRACTOR_NAV } from '@/components/shell/sidebar'
 import { getTierInfo } from '@/server/queries/dashboard'
 import { TierUpAnimation } from '@/components/tier/tier-up-animation'
+import { ChatWidget } from '@/components/ai/chat-widget'
 
 export default async function ContractorLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -22,6 +23,7 @@ export default async function ContractorLayout({ children }: { children: React.R
       <Suspense fallback={null}>
         <TierUpAnimation />
       </Suspense>
+      <ChatWidget />
     </div>
   )
 }
