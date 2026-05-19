@@ -2,8 +2,10 @@ import { auth } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { getOmReadings, getActiveLicense } from '@/server/queries/client'
+import { getProjectPendingOffer } from '@/server/queries/payments'
 import { PlantCharts } from '@/components/client/plant-charts'
 import { PaywallGate } from '@/components/client/paywall-gate'
+import { OfferAcceptSection } from '@/components/client/offer-accept-section'
 
 type Props = { params: Promise<{ siteId: string }> }
 
@@ -23,8 +25,9 @@ export default async function PlantDashboardPage({ params }: Props) {
   })
   if (!project) notFound()
 
-  const [license, readings] = await Promise.all([
+  const [license, pendingOffer, readings] = await Promise.all([
     getActiveLicense(project.id, companyId),
+    getProjectPendingOffer(project.id, companyId),
     project.stage === 'OPERATIONAL' ? getOmReadings(project.id) : Promise.resolve([]),
   ])
 
@@ -48,13 +51,23 @@ export default async function PlantDashboardPage({ params }: Props) {
         )}
       </div>
 
-      {!isActive && (
-        <PaywallGate
-          projectName={project.name}
+      {/* Pending offer — accept + EFT flow */}
+      {!isActive && pendingOffer && (
+        <OfferAcceptSection
+          offerId={pendingOffer.id}
+          tier={pendingOffer.license.tier}
+          monthlyFeeCents={pendingOffer.license.monthlyFeeCents}
           epcName={project.contractorCompany.name}
+          projectName={project.name}
         />
       )}
 
+      {/* No offer, no license — standard paywall */}
+      {!isActive && !pendingOffer && (
+        <PaywallGate projectName={project.name} epcName={project.contractorCompany.name} />
+      )}
+
+      {/* Active license — charts */}
       {isActive && readings.length > 0 && (
         <PlantCharts
           readings={readings.map((r) => ({
@@ -64,7 +77,7 @@ export default async function PlantDashboardPage({ params }: Props) {
             consumptionKwh: r.consumptionKwh,
             irradianceWM2: r.irradianceWM2,
           }))}
-          tier={license.tier}
+          tier={license!.tier}
         />
       )}
 
