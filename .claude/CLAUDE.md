@@ -37,9 +37,9 @@ The build plan lives in `docs/plan/`. **Read these files at the start of every n
 
 ## Current milestone
 
-> **Currently working on:** M10 SEE.AI Assistant + Polish Pass
-> **Last completed:** M9 — Payments + Licensing complete (EFT flow, EPC monitoring paywall, sell-to-client flow, license activation animation, admin reconciliation queue, contractor wallet, admin Enterprise Accounts with Act 4 scope addition).
-> **Next:** M10 (SEE.AI streaming chat, tool calls, global polish pass, Demo Mode toggle)
+> **Currently working on:** Post-prototype polish — DEMO READY
+> **Last completed:** M10 — SEE.AI Assistant + Polish Pass complete (streaming Claude API chat, 6 tool calls, floating widget, Demo Mode toggle, loading skeletons, empty states).
+> **Status: DEMO READY — all 10 milestones complete**
 
 *Keep this updated as you progress. This single line orients every new session.*
 
