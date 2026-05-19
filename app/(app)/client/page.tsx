@@ -1,16 +1,19 @@
-import { Skeleton } from '@/components/ui/skeleton'
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { isEnterpriseCompany, getClientProjects } from '@/server/queries/client'
 
-export default function ClientPortfolioPage() {
-  return (
-    <div className="p-6 space-y-6">
-      <Skeleton className="h-8 w-48" />
-      <div className="grid grid-cols-2 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-md" />
-        ))}
-      </div>
-      <Skeleton className="h-64 rounded-md" />
-      <p className="text-sm text-ink-500">Client portfolio dashboard coming in Phase 2 (M6)</p>
-    </div>
-  )
+export default async function ClientIndexPage() {
+  const session = await auth()
+  if (!session) redirect('/login')
+  const companyId = session.user.companyId
+
+  if (isEnterpriseCompany(companyId)) {
+    redirect('/client/enterprise/operations')
+  }
+
+  const projects = await getClientProjects(companyId)
+  if (projects.length === 1 && projects[0]) {
+    redirect(`/client/plant/${projects[0].siteId}`)
+  }
+  redirect('/client/portfolio')
 }

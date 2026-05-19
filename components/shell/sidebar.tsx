@@ -9,7 +9,7 @@ import { Wordmark } from '@/components/brand/wordmark'
 import {
   LayoutDashboard, FolderOpen, ShoppingBag, Wallet,
   Building2, ChevronLeft, ChevronRight, Wrench, TrendingUp, Lock,
-  ClipboardList, Scale, HelpCircle, Settings, BarChart3, Briefcase, User,
+  ClipboardList, Scale, HelpCircle, Settings, BarChart3, Briefcase, User, Link2,
 } from 'lucide-react'
 
 export type NavItem = {
@@ -171,8 +171,17 @@ export const SERVICE_PROVIDER_NAV: NavItem[] = [
 ]
 
 export const CLIENT_NAV: NavItem[] = [
-  { label: 'Portfolio', href: '/client', icon: LayoutDashboard },
-  { label: 'My Sites', href: '/client/sites', icon: Building2 },
+  { label: 'Plant Dashboard', href: '/client/plant', icon: LayoutDashboard },
+  { label: 'Portfolio', href: '/client/portfolio', icon: FolderOpen },
+  { label: 'O&M Schedule', href: '/client/o-and-m', icon: Wrench },
+  { label: 'Documents', href: '/client/documents', icon: ClipboardList },
+]
+
+export const ENTERPRISE_CLIENT_NAV: NavItem[] = [
+  { label: 'Operations', href: '/client/enterprise/operations', icon: LayoutDashboard },
+  { label: 'Reports', href: '/client/enterprise/reports', icon: BarChart3 },
+  { label: 'Integrations', href: '/client/enterprise/integrations', icon: Link2 },
+  { label: 'Admin', href: '/client/enterprise/admin', icon: Settings },
 ]
 
 export const ADMIN_NAV: NavItem[] = [
