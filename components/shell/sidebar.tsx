@@ -9,7 +9,7 @@ import { Wordmark } from '@/components/brand/wordmark'
 import {
   LayoutDashboard, FolderOpen, ShoppingBag, Wallet,
   Building2, ChevronLeft, ChevronRight, Wrench, TrendingUp, Lock,
-  ClipboardList, Scale, HelpCircle, Settings, BarChart3, Briefcase, User, Link2,
+  ClipboardList, Scale, HelpCircle, Settings, BarChart3, Briefcase, User, Link2, Layers,
 } from 'lucide-react'
 
 export type NavItem = {
@@ -189,6 +189,7 @@ export const ADMIN_NAV: NavItem[] = [
   { label: 'KYC Queue', href: '/admin/kyc', icon: FolderOpen },
   { label: 'Submissions', href: '/admin/submissions', icon: ClipboardList },
   { label: 'Users & Companies', href: '/admin/users', icon: Building2 },
+  { label: 'Enterprise', href: '/admin/enterprise', icon: Layers },
   { label: 'Templates', href: '/admin/templates', icon: ShoppingBag },
   { label: 'Financial', href: '/admin/financial', icon: BarChart3 },
   { label: 'Disputes', href: '/admin/disputes', icon: Scale },
