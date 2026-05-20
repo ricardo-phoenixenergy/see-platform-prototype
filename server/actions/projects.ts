@@ -7,24 +7,63 @@ import { selectMilestoneTemplate } from '@/lib/milestone-templates'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+const optNum = z.preprocess(
+  v => (v === '' || v === undefined || v === null ? undefined : Number(v)),
+  z.number().positive().optional()
+)
+
 const CreateProjectSchema = z.object({
-  name: z.string().min(3, 'Project name must be at least 3 characters'),
+  clientRecordId: z.string().optional(),
   clientName: z.string().min(2, 'Client name required'),
-  technology: z.enum(['SOLAR_PV', 'WIND', 'BESS', 'HYBRID']),
-  systemSizeKw: z.coerce.number().positive('System size must be positive'),
-  dealStructure: z.enum(['OUTRIGHT', 'PPA', 'LEASE']),
-  gridConnectionStatus: z.enum(['GRID_TIED', 'OFF_GRID', 'GRID_TIED_WITH_BACKUP']),
+  name: z.string().min(3, 'Project name must be at least 3 characters'),
   addressLine: z.string().min(2),
   city: z.string().min(2),
   province: z.string().min(2),
   clientNeeds: z.string().optional(),
-})
 
-type CreateProjectInput = z.infer<typeof CreateProjectSchema>
+  // Tech scope flags
+  hasPv: z.boolean(),
+  hasBess: z.boolean(),
+  hasWind: z.boolean(),
+  hasWheeling: z.boolean(),
+
+  // PV
+  pvCapacityKwp: optNum,
+  pvPanelBrand: z.string().optional(),
+  pvInverterBrand: z.string().optional(),
+  pvMountingType: z.enum(['ROOFTOP', 'GROUND_MOUNT', 'CARPORT']).optional(),
+
+  // BESS
+  bessCapacityKwh: optNum,
+  bessPowerKw: optNum,
+  bessChemistry: z.enum(['LFP', 'NMC', 'VRLA']).optional(),
+  bessBrandModel: z.string().optional(),
+  bessAutonomyHours: optNum,
+
+  // Wind
+  windCapacityKw: optNum,
+  windTurbineModel: z.string().optional(),
+  windHubHeightM: optNum,
+
+  // Wheeling
+  wheelingAgreementType: z.enum(['VIRTUAL_NET_METERING', 'OPEN_ACCESS', 'BILATERAL']).optional(),
+  wheelingDistanceKm: optNum,
+  wheelingTradingPartner: z.string().optional(),
+
+  // System design
+  systemSizeKw: z.coerce.number().positive('System size must be positive'),
+  gridConnectionStatus: z.enum(['GRID_TIED', 'OFF_GRID', 'GRID_TIED_WITH_BACKUP']),
+  designObjectives: z.array(z.enum(['SELF_CONSUMPTION', 'PEAK_SHAVING', 'BACKUP', 'GRID_EXPORT'])),
+  exportToGrid: z.boolean(),
+  targetBackupHours: optNum,
+
+  // Commercial
+  dealStructure: z.enum(['OUTRIGHT', 'PPA', 'LEASE', 'WHEELING_AGREEMENT']),
+})
 
 type ActionResult = { ok: true; projectId: string } | { ok: false; error: string }
 
-export async function createProject(input: CreateProjectInput): Promise<ActionResult> {
+export async function createProject(input: z.infer<typeof CreateProjectSchema>): Promise<ActionResult> {
   const session = await auth()
   if (!session) return { ok: false, error: 'Not authenticated' }
 
@@ -39,8 +78,51 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
 
   const data = parsed.data
 
+  // Derive the Technology enum for milestone template selection
+  const primaryCount = [data.hasPv, data.hasBess, data.hasWind].filter(Boolean).length
+  const technology = (
+    primaryCount > 1 ? 'HYBRID' :
+    data.hasBess ? 'BESS' :
+    data.hasWind ? 'WIND' :
+    'SOLAR_PV'
+  ) as 'SOLAR_PV' | 'WIND' | 'BESS' | 'HYBRID'
+
+  // Build techScope JSON from flat form fields
+  const techScope = {
+    hasPv: data.hasPv,
+    hasBess: data.hasBess,
+    hasWind: data.hasWind,
+    hasWheeling: data.hasWheeling,
+    ...(data.hasPv ? {
+      pvCapacityKwp: data.pvCapacityKwp,
+      pvPanelBrand: data.pvPanelBrand || undefined,
+      pvInverterBrand: data.pvInverterBrand || undefined,
+      pvMountingType: data.pvMountingType,
+    } : {}),
+    ...(data.hasBess ? {
+      bessCapacityKwh: data.bessCapacityKwh,
+      bessPowerKw: data.bessPowerKw,
+      bessChemistry: data.bessChemistry,
+      bessBrandModel: data.bessBrandModel || undefined,
+      bessAutonomyHours: data.bessAutonomyHours,
+    } : {}),
+    ...(data.hasWind ? {
+      windCapacityKw: data.windCapacityKw,
+      windTurbineModel: data.windTurbineModel || undefined,
+      windHubHeightM: data.windHubHeightM,
+    } : {}),
+    ...(data.hasWheeling ? {
+      wheelingAgreementType: data.wheelingAgreementType,
+      wheelingDistanceKm: data.wheelingDistanceKm,
+      wheelingTradingPartner: data.wheelingTradingPartner || undefined,
+    } : {}),
+    designObjectives: data.designObjectives,
+    exportToGrid: data.exportToGrid,
+    targetBackupHours: data.targetBackupHours,
+  }
+
   try {
-    const template = await selectMilestoneTemplate(data.technology, data.systemSizeKw, data.dealStructure)
+    const template = await selectMilestoneTemplate(technology, data.systemSizeKw, data.dealStructure)
 
     const templateSnapshot = template.items.map(item => ({
       id: item.id,
@@ -67,12 +149,15 @@ export async function createProject(input: CreateProjectInput): Promise<ActionRe
           name: data.name,
           contractorCompanyId: session.user.companyId,
           externalClientName: data.clientName,
+          ...(data.clientRecordId ? { clientRecordId: data.clientRecordId } : {}),
           siteId: site.id,
-          technology: data.technology,
+          technology,
           systemSizeKw: data.systemSizeKw,
+          ...(data.hasBess && data.bessCapacityKwh ? { storageSizeKwh: data.bessCapacityKwh } : {}),
           dealStructure: data.dealStructure,
           gridConnectionStatus: data.gridConnectionStatus,
-          ...(data.clientNeeds !== undefined ? { clientNeeds: data.clientNeeds } : {}),
+          techScope,
+          ...(data.clientNeeds ? { clientNeeds: data.clientNeeds } : {}),
           templateSnapshot,
           templateVersion: template.version,
         },
