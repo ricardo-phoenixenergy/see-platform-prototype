@@ -863,22 +863,21 @@ async function main() {
   })
   void gridInvoice // suppress unused warning
 
-  const existingGridJobCard = await db.jobCard.findUnique({ where: { id: 'jobcard-grid' } })
-  if (!existingGridJobCard) {
-    await db.jobCard.create({
-      data: {
-        id: 'jobcard-grid',
-        rfqId: rfqGrid.id,
-        providerCompanyId: mokoena.id,
-        scopeOfWork: 'Single-line diagram, protection relay specification, grid application submission, liaison with City Power.',
-        amountCents: 28_500_00,
-        seePlatformFeeCents: gridPlatformFee,
-        escrowStatus: 'AWAITING_PAYMENT',
-        status: 'ACTIVE',
-        escrowPaymentId: 'payment-grid-escrow',
-      },
-    })
-  }
+  // Delete any existing job card for this RFQ (may have been created by acceptBid during testing)
+  await db.jobCard.deleteMany({ where: { rfqId: rfqGrid.id } })
+  await db.jobCard.create({
+    data: {
+      id: 'jobcard-grid',
+      rfqId: rfqGrid.id,
+      providerCompanyId: mokoena.id,
+      scopeOfWork: 'Single-line diagram, protection relay specification, grid application submission, liaison with City Power.',
+      amountCents: 28_500_00,
+      seePlatformFeeCents: gridPlatformFee,
+      escrowStatus: 'AWAITING_PAYMENT',
+      status: 'ACTIVE',
+      escrowPaymentId: 'payment-grid-escrow',
+    },
+  })
 
   // Bid from Lerato's company on the structural RFQ
   await db.bid.upsert({
