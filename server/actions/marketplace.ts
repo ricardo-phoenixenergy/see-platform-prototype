@@ -21,7 +21,9 @@ const createRfqSchema = z.object({
 })
 
 export async function createRfq(data: z.infer<typeof createRfqSchema>) {
-  const parsed = createRfqSchema.parse(data)
+  const result = createRfqSchema.safeParse(data)
+  if (!result.success) throw new Error(result.error.issues[0]?.message ?? 'Invalid RFQ data.')
+  const parsed = result.data
   const rfq = await db.rfq.create({
     data: {
       projectId: parsed.projectId,
@@ -42,15 +44,19 @@ export async function createRfq(data: z.infer<typeof createRfqSchema>) {
 // ─── BID ─────────────────────────────────────────────────────────────────────
 
 const submitBidSchema = z.object({
-  rfqId: z.string(),
-  companyId: z.string(),
+  rfqId: z.string().min(1),
+  companyId: z.string().min(1),
   amountCents: z.coerce.number().positive(),
-  proposalText: z.string().min(20),
+  proposalText: z.string().min(1),
   estimatedDays: z.coerce.number().positive(),
 })
 
 export async function submitBid(data: z.infer<typeof submitBidSchema>) {
-  const parsed = submitBidSchema.parse(data)
+  const result = submitBidSchema.safeParse(data)
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message ?? 'Invalid bid data.')
+  }
+  const parsed = result.data
   const existing = await db.bid.findFirst({
     where: { rfqId: parsed.rfqId, providerCompanyId: parsed.companyId },
   })
