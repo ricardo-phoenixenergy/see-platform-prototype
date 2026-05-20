@@ -147,7 +147,7 @@ export default async function ServiceCenterPage({ searchParams }: Props) {
             rfq.jobCard ? (
               <Link
                 key={rfq.jobCard.id}
-                href={`/service-provider/job-cards/${rfq.jobCard.id}`}
+                href={`/contractor/service-center/job-cards/${rfq.jobCard.id}`}
                 className="flex items-start gap-4 rounded-lg border border-ink-200 bg-white px-5 py-4 hover:border-ink-300 transition-colors"
               >
                 <div className="flex-1 min-w-0">

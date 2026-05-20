@@ -117,9 +117,17 @@ export default async function RfqDetailPage({ params }: Props) {
         ))}
 
         {isAwarded && rfq.jobCard && (
-          <div className="rounded-md border border-success-500/20 bg-success-50/20 px-4 py-3">
-            <p className="text-sm font-medium text-ink-900">Job card created</p>
-            <p className="text-xs text-ink-500 mt-0.5">The service provider has been notified and work has begun.</p>
+          <div className="rounded-md border border-success-500/20 bg-success-50/20 px-4 py-3 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-ink-900">Job card created</p>
+              <p className="text-xs text-ink-500 mt-0.5">The service provider has been notified and work has begun.</p>
+            </div>
+            <Link
+              href={`/contractor/service-center/job-cards/${rfq.jobCard.id}`}
+              className="flex-shrink-0 h-7 px-3 rounded-md bg-ink-900 text-white text-xs font-medium hover:bg-ink-800 transition-colors inline-flex items-center"
+            >
+              View Job Card →
+            </Link>
           </div>
         )}
       </div>

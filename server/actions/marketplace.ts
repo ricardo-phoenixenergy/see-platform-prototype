@@ -135,6 +135,16 @@ export async function submitDeliverable(formData: FormData) {
   revalidatePath('/service-provider/job-cards')
 }
 
+export async function markJobCardComplete(formData: FormData) {
+  const jobCardId = z.string().parse(formData.get('jobCardId'))
+  await db.jobCard.update({
+    where: { id: jobCardId },
+    data: { status: 'COMPLETED', completedAt: new Date(), escrowStatus: 'RELEASED' },
+  })
+  revalidatePath(`/contractor/service-center/job-cards/${jobCardId}`)
+  revalidatePath('/contractor/service-center')
+}
+
 const messageSchema = z.object({
   jobCardId: z.string(),
   senderUserId: z.string(),

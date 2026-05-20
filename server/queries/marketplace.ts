@@ -114,6 +114,7 @@ export async function getJobCardDetail(id: string) {
           },
         },
       },
+      providerCompany: { select: { name: true } },
       deliverables: { orderBy: { version: 'asc' } },
       messages: { orderBy: { createdAt: 'asc' } },
     },

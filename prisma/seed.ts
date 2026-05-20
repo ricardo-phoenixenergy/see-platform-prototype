@@ -156,6 +156,22 @@ async function main() {
     },
   })
 
+  // Second service provider — used for the "rejected bid" demo on rfq-kruger-eia
+  const capeGrid = await db.company.upsert({
+    where: { id: 'company-cape-grid' },
+    update: {},
+    create: {
+      id: 'company-cape-grid',
+      name: 'Cape Grid Environmental Consultants',
+      type: 'SERVICE_PROVIDER',
+      registrationNo: '2018/334455/07',
+      beeeLevel: 2,
+      about: 'Environmental impact assessments and grid compliance for renewable energy projects.',
+      phone: '+27 21 334 5678',
+      email: 'info@capegrid.co.za',
+    },
+  })
+
   const spaza = await db.company.upsert({
     where: { id: 'company-spaza' },
     update: {},
@@ -832,6 +848,21 @@ async function main() {
       proposalText: 'Completed over 40 EIAs for renewable energy projects. Wetland specialist on team. NEMA-compliant reports.',
       estimatedDays: 45,
       status: 'ACCEPTED',
+    },
+  })
+
+  // Second bid on the same RFQ — rejected to demonstrate the full bid comparison flow
+  await db.bid.upsert({
+    where: { id: 'bid-kruger-eia-capegrid' },
+    update: {},
+    create: {
+      id: 'bid-kruger-eia-capegrid',
+      rfqId: rfqKrugerEia.id,
+      providerCompanyId: capeGrid.id,
+      amountCents: 52_000_00,
+      proposalText: 'Extensive EIA experience across the Western Cape and Northern Cape regions. Our team includes a registered environmental assessment practitioner (EAP) and a hydrology specialist.',
+      estimatedDays: 60,
+      status: 'REJECTED',
     },
   })
 
