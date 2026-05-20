@@ -30,7 +30,7 @@ export default async function ServiceCenterPage({ searchParams }: Props) {
   const companyId = session.user.companyId
 
   const [rfqs, providers] = await Promise.all([
-    tab !== 'browse' ? getContractorRfqs(companyId) : Promise.resolve([]),
+    getContractorRfqs(companyId),
     tab === 'browse' ? getServiceProviders() : Promise.resolve([]),
   ])
 
@@ -44,7 +44,7 @@ export default async function ServiceCenterPage({ searchParams }: Props) {
           <h1 className="text-base font-semibold text-ink-900">Service Centre</h1>
           <p className="text-sm text-ink-500">Find verified service providers and manage your project RFQs.</p>
         </div>
-        {tab !== 'browse' && (
+        <div className="flex flex-col items-end gap-0.5">
           <Link
             href="/contractor/service-center/rfq/new"
             className="flex items-center gap-1.5 h-8 px-3 rounded-md bg-ink-900 text-white text-xs font-medium hover:bg-ink-800 transition-colors"
@@ -52,7 +52,8 @@ export default async function ServiceCenterPage({ searchParams }: Props) {
             <Plus className="h-3.5 w-3.5" strokeWidth={2} />
             Post RFQ
           </Link>
-        )}
+          <p className="text-[10px] text-ink-400">Broadcast to all matching providers</p>
+        </div>
       </div>
 
       {/* Tabs */}
