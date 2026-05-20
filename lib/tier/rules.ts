@@ -70,10 +70,13 @@ export function getCashbackRate(tier: Tier): number {
   return TIER_DISCOUNT_RATES[tier]
 }
 
-// Token earn rates
-export const TOKEN_BASE_MILESTONE    = 50   // standard milestone verified
-export const TOKEN_BASE_HARD_GATE    = 100  // hard-gate milestone verified
-export const TOKEN_BASE_PROJECT_DONE = 250  // project reaches OPERATIONAL stage
+// Token earn rates — differentiated by review type, not milestone type
+export const TOKEN_AI_REVIEW      = 100   // milestone accepted via AI verification
+export const TOKEN_EXPERT_REVIEW  = 300   // milestone accepted via expert peer review (3×)
+export const TOKEN_PROJECT_DONE   = 1_000 // project reaches OPERATIONAL stage
+
+// Exchange rate: 10 tokens = R1 (i.e. 1 token = R0.10)
+export const TOKENS_PER_RAND = 10
 
 export const TIER_TOKEN_MULTIPLIERS: Record<Tier, number> = {
   BRONZE:   1,
@@ -82,10 +85,23 @@ export const TIER_TOKEN_MULTIPLIERS: Record<Tier, number> = {
   PLATINUM: 3,
 }
 
-export function tokensForMilestone(tier: Tier, isHardGate: boolean): number {
-  const base = isHardGate ? TOKEN_BASE_HARD_GATE : TOKEN_BASE_MILESTONE
+export function tokensForMilestone(tier: Tier, isExpertReview: boolean): number {
+  const base = isExpertReview ? TOKEN_EXPERT_REVIEW : TOKEN_AI_REVIEW
   return Math.round(base * TIER_TOKEN_MULTIPLIERS[tier])
 }
+
+export function tokensToRand(tokens: number): number {
+  return tokens / TOKENS_PER_RAND
+}
+
+export function randToTokens(rand: number): number {
+  return Math.floor(rand * TOKENS_PER_RAND)
+}
+
+// Keep legacy aliases so existing imports don't break
+export const TOKEN_BASE_MILESTONE    = TOKEN_AI_REVIEW
+export const TOKEN_BASE_HARD_GATE    = TOKEN_EXPERT_REVIEW
+export const TOKEN_BASE_PROJECT_DONE = TOKEN_PROJECT_DONE
 
 export function getNextTier(tier: Tier): Tier | null {
   const idx = TIER_ORDER.indexOf(tier)
