@@ -2,9 +2,9 @@
 // components/marketplace/job-card-deliverables.tsx
 
 import { useState, useRef, useTransition } from 'react'
-import { addDeliverable } from '@/server/actions/marketplace'
+import { addDeliverable, deleteDeliverable } from '@/server/actions/marketplace'
 import { uploadFile } from '@/lib/upload-file'
-import { ExternalLink, Upload, Loader2, FileText, X } from 'lucide-react'
+import { ExternalLink, Upload, Loader2, FileText, X, Trash2 } from 'lucide-react'
 
 type Deliverable = { id: string; name: string; url: string; version: number; createdAt: string }
 type Props = { jobCardId: string; deliverables: Deliverable[]; canUpload: boolean }
@@ -13,9 +13,22 @@ export function JobCardDeliverables({ jobCardId, deliverables, canUpload }: Prop
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [localDeliverables, setLocalDeliverables] = useState(deliverables)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+    try {
+      await deleteDeliverable(id)
+      setLocalDeliverables((prev) => prev.filter((d) => d.id !== id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete deliverable.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   async function handleUpload() {
     if (!selectedFile) return
@@ -57,17 +70,32 @@ export function JobCardDeliverables({ jobCardId, deliverables, canUpload }: Prop
     <div className="space-y-3">
       {/* Existing deliverables */}
       {localDeliverables.map((d) => (
-        <a
-          key={d.id}
-          href={d.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-sm text-accent-600 hover:underline"
-        >
-          <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
-          {d.name}
-          <span className="text-xs text-ink-400">v{d.version}</span>
-        </a>
+        <div key={d.id} className="flex items-center gap-2 group">
+          <a
+            href={d.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-accent-600 hover:underline flex-1 min-w-0"
+          >
+            <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+            <span className="truncate">{d.name}</span>
+            <span className="text-xs text-ink-400 flex-shrink-0">v{d.version}</span>
+          </a>
+          {canUpload && (
+            <button
+              type="button"
+              onClick={() => handleDelete(d.id)}
+              disabled={deletingId === d.id}
+              className="opacity-0 group-hover:opacity-100 text-ink-300 hover:text-danger-500 transition-all flex-shrink-0"
+              aria-label={`Delete ${d.name}`}
+            >
+              {deletingId === d.id
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+                : <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+              }
+            </button>
+          )}
+        </div>
       ))}
 
       {localDeliverables.length === 0 && (

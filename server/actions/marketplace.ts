@@ -139,6 +139,12 @@ const deliverableSchema = z.object({
   url: z.string().url(),
 })
 
+export async function deleteDeliverable(deliverableId: string) {
+  const result = z.string().min(1).safeParse(deliverableId)
+  if (!result.success) throw new Error('Invalid deliverable ID')
+  await db.jobDeliverable.delete({ where: { id: result.data } })
+}
+
 export async function addDeliverable(data: z.infer<typeof deliverableSchema>) {
   const parsed = deliverableSchema.parse(data)
   const existing = await db.jobDeliverable.count({ where: { jobCardId: parsed.jobCardId } })
