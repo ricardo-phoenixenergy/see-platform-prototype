@@ -4,6 +4,7 @@ import { getHardwareListings } from '@/server/queries/marketplace'
 import { getTierInfo } from '@/server/queries/dashboard'
 import { TIER_DISCOUNT_RATES } from '@/lib/tier/rules'
 import { HardwareProductCard } from '@/components/marketplace/hardware-product-card'
+import { CartButton } from '@/components/marketplace/cart-drawer'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Tag } from 'lucide-react'
@@ -37,9 +38,12 @@ export default async function HardwareMarketplacePage({ searchParams }: Props) {
           <h1 className="text-base font-semibold text-ink-900">Hardware Marketplace</h1>
           <p className="text-sm text-ink-500">Solar panels, batteries, inverters, and accessories from verified suppliers.</p>
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0 rounded-md bg-success-50/60 border border-success-500/20 px-3 py-1.5">
-          <Tag className="h-3.5 w-3.5 text-success-600" strokeWidth={1.5} />
-          <span className="text-xs font-semibold text-success-700">{discountPercent}% {tierInfo.tier} discount applied</span>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-1.5 rounded-md bg-success-50/60 border border-success-500/20 px-3 py-1.5">
+            <Tag className="h-3.5 w-3.5 text-success-600" strokeWidth={1.5} />
+            <span className="text-xs font-semibold text-success-700">{discountPercent}% {tierInfo.tier} discount applied</span>
+          </div>
+          <CartButton />
         </div>
       </div>
 

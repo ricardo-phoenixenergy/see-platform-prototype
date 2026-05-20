@@ -2,7 +2,7 @@
 // components/marketplace/hardware-product-card.tsx
 
 import { useCartStore } from '@/lib/cart-store'
-import { ShoppingCart, CheckCircle } from 'lucide-react'
+import { ShoppingCart, CheckCircle, Plus, Minus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 type Props = {
@@ -26,6 +26,8 @@ export function HardwareProductCard({
   discountPercent = 0,
 }: Props) {
   const addItem = useCartStore((s) => s.addItem)
+  const removeItem = useCartStore((s) => s.removeItem)
+  const updateQty = useCartStore((s) => s.updateQty)
   const items = useCartStore((s) => s.items)
   const [added, setAdded] = useState(false)
   const inCart = items.find((i) => i.id === id)
@@ -88,17 +90,41 @@ export function HardwareProductCard({
               <p className="text-[10px] text-ink-400">{stockQty > 0 ? `${stockQty} in stock` : 'Out of stock'}</p>
             )}
           </div>
-          <button
-            onClick={handleAdd}
-            disabled={stockQty === 0}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-md bg-ink-900 text-white text-xs font-medium hover:bg-ink-800 transition-colors disabled:opacity-40"
-          >
-            {added ? (
-              <><CheckCircle className="h-3.5 w-3.5" strokeWidth={1.5} />Added</>
-            ) : (
-              <><ShoppingCart className="h-3.5 w-3.5" strokeWidth={1.5} />{inCart ? `In cart (${inCart.qty})` : 'Add to cart'}</>
-            )}
-          </button>
+          {inCart ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => updateQty(id, inCart.qty - 1)}
+                className="h-7 w-7 rounded border border-ink-200 flex items-center justify-center hover:bg-ink-50 transition-colors"
+                aria-label="Decrease"
+              >
+                {inCart.qty === 1
+                  ? <Trash2 className="h-3 w-3 text-danger-500" strokeWidth={1.5} />
+                  : <Minus className="h-3 w-3 text-ink-600" strokeWidth={2} />
+                }
+              </button>
+              <span className="text-sm font-semibold text-ink-900 tabular-nums w-5 text-center">{inCart.qty}</span>
+              <button
+                onClick={() => updateQty(id, inCart.qty + 1)}
+                disabled={stockQty === 0}
+                className="h-7 w-7 rounded border border-ink-200 flex items-center justify-center hover:bg-ink-50 transition-colors disabled:opacity-40"
+                aria-label="Increase"
+              >
+                <Plus className="h-3 w-3 text-ink-600" strokeWidth={2} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleAdd}
+              disabled={stockQty === 0}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-md bg-ink-900 text-white text-xs font-medium hover:bg-ink-800 transition-colors disabled:opacity-40"
+            >
+              {added ? (
+                <><CheckCircle className="h-3.5 w-3.5" strokeWidth={1.5} />Added</>
+              ) : (
+                <><ShoppingCart className="h-3.5 w-3.5" strokeWidth={1.5} />Add to cart</>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
