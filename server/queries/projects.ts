@@ -35,6 +35,7 @@ export async function getProject(projectId: string, companyId: string) {
     include: {
       site: true,
       clientCompany: { select: { name: true } },
+      clientRecord: { select: { id: true, name: true } },
       milestones: {
         include: {
           submissions: { orderBy: { createdAt: 'desc' }, take: 1 },
