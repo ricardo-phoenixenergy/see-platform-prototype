@@ -805,6 +805,21 @@ async function main() {
     },
   })
 
+  // Bid from Mokoena on the grid connection RFQ (SUBMITTED — ready to accept and demo escrow flow)
+  await db.bid.upsert({
+    where: { id: 'bid-grid-mokoena' },
+    update: {},
+    create: {
+      id: 'bid-grid-mokoena',
+      rfqId: 'rfq-alpha-grid',
+      providerCompanyId: mokoena.id,
+      amountCents: 28_500_00,
+      proposalText: 'We have extensive experience with City Power and Eskom grid connection applications for embedded generation up to 1MW. Our team includes a registered professional electrical engineer (Pr.Eng) who will prepare the full SLD, protection relay specification, and manage the submission process end-to-end. Typical approval timeline is 6–8 weeks after submission.',
+      estimatedDays: 25,
+      status: 'SUBMITTED',
+    },
+  })
+
   // Bid from Lerato's company on the structural RFQ
   await db.bid.upsert({
     where: { id: 'bid-structural-mokoena' },
