@@ -130,6 +130,7 @@ model Company {
   ownedProjectsAsClient Project[] @relation("ClientProjects")
 
   hardwareOrders Order[]
+  clientRecords  ClientRecord[] @relation("ContractorClientRecords")
   saleListings   ProjectSaleListing[] @relation("ListedSales")
   notifications  Notification[]
 
@@ -286,6 +287,29 @@ enum TokenTransactionType {
 }
 
 // =========================================================================
+// CLIENT RECORDS (CRM — contractor-owned)
+// =========================================================================
+
+model ClientRecord {
+  id                  String  @id @default(cuid())
+  contractorCompanyId String
+  name                String
+  contactName         String?
+  contactEmail        String?
+  contactPhone        String?
+  industry            String? // e.g. "Retail", "Manufacturing", "Agriculture"
+  notes               String?
+
+  contractorCompany Company   @relation("ContractorClientRecords", fields: [contractorCompanyId], references: [id])
+  projects          Project[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contractorCompanyId])
+}
+
+// =========================================================================
 // PROJECTS
 // =========================================================================
 
@@ -294,7 +318,8 @@ model Project {
   name                String
   contractorCompanyId String
   clientCompanyId     String? // optional — client may not be on platform yet
-  externalClientName  String? // used when clientCompanyId is null
+  externalClientName  String? // used when clientCompanyId is null and clientRecordId is null
+  clientRecordId      String? // CRM record owned by contractor company
   siteId              String  @unique
 
   // Technical classification
@@ -315,12 +340,14 @@ model Project {
 
   // Client motivations
   clientNeeds String?
+  techScope   Json? // TechScope type — see lib/tech-scope.ts
 
   // Computed/cached
   completionPercentage Int @default(0)
 
   contractorCompany Company           @relation("ContractorProjects", fields: [contractorCompanyId], references: [id])
   clientCompany     Company?          @relation("ClientProjects", fields: [clientCompanyId], references: [id])
+  clientRecord      ClientRecord?     @relation(fields: [clientRecordId], references: [id])
   site              Site              @relation(fields: [siteId], references: [id])
   milestones        Milestone[]
   documents         ProjectDocument[]
@@ -365,6 +392,7 @@ enum DealStructure {
   OUTRIGHT
   PPA
   LEASE
+  WHEELING_AGREEMENT
 }
 
 enum ProjectStage {
