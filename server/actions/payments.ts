@@ -156,6 +156,9 @@ export async function reconcilePayment(paymentId: string, bankReference?: string
   const licenseLineItem = payment.invoice.lineItems.find(
     (li) => li.type === 'OM_LICENSE_ACTIVATION' && li.relatedEntityId
   )
+  const escrowLineItem = payment.invoice.lineItems.find(
+    (li) => li.type === 'SERVICE_ESCROW' && li.relatedEntityId
+  )
 
   await db.$transaction(async (tx) => {
     await tx.payment.update({
@@ -234,10 +237,19 @@ export async function reconcilePayment(paymentId: string, bankReference?: string
         }
       }
     }
+
+    // Activate service escrow job card if this is an escrow payment
+    if (escrowLineItem?.relatedEntityId) {
+      await tx.jobCard.update({
+        where: { id: escrowLineItem.relatedEntityId },
+        data: { escrowStatus: 'LOCKED' },
+      })
+    }
   })
 
   revalidatePath('/admin/financial')
   revalidatePath('/contractor/wallet')
+  revalidatePath('/contractor/service-center')
   revalidatePath('/client')
 }
 

@@ -1,22 +1,20 @@
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getJobCardDetail } from '@/server/queries/marketplace'
-import { markJobCardComplete } from '@/server/actions/marketplace'
+import { markJobCardComplete, uploadEscrowProof } from '@/server/actions/marketplace'
 import { JobCardChat } from '@/components/marketplace/job-card-chat'
 import { JobCardDeliverables } from '@/components/marketplace/job-card-deliverables'
+import { EscrowPaymentBanner } from '@/components/marketplace/escrow-payment-banner'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, Lock, AlertCircle } from 'lucide-react'
 
 type Props = { params: Promise<{ id: string }> }
 
 const STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Active',
-  PENDING_REVIEW: 'Pending Review',
-  COMPLETED: 'Completed',
-  DISPUTED: 'Disputed',
+  ACTIVE: 'Active', PENDING_REVIEW: 'Pending Review',
+  COMPLETED: 'Completed', DISPUTED: 'Disputed',
 }
-
 const STATUS_CLASS: Record<string, string> = {
   ACTIVE: 'bg-accent-500/10 text-accent-600',
   PENDING_REVIEW: 'bg-warning-50 text-warning-700',
@@ -24,15 +22,25 @@ const STATUS_CLASS: Record<string, string> = {
   DISPUTED: 'bg-danger-500/10 text-danger-600',
 }
 
+function fmt(cents: number) {
+  return `R ${(cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`
+}
+
 export default async function ContractorJobCardDetailPage({ params }: Props) {
   const session = await auth()
   if (!session) redirect('/login')
 
   const { id } = await params
-  const jobCard = await getJobCardDetail(id)
-  if (!jobCard) notFound()
+  const data = await getJobCardDetail(id)
+  if (!data) notFound()
 
+  const { escrowPayment, bankAccount, ...jobCard } = data
   const userId = session.user.id ?? ''
+
+  const spPayout = jobCard.amountCents - jobCard.seePlatformFeeCents
+  const isAwaitingPayment = jobCard.escrowStatus === 'AWAITING_PAYMENT'
+  const isLocked = jobCard.escrowStatus === 'LOCKED'
+  const isReleased = jobCard.escrowStatus === 'RELEASED'
   const isPendingReview = jobCard.status === 'PENDING_REVIEW'
   const isCompleted = jobCard.status === 'COMPLETED'
 
@@ -56,13 +64,8 @@ export default async function ContractorJobCardDetailPage({ params }: Props) {
           </p>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="text-sm font-semibold text-ink-900">
-            R {(jobCard.amountCents / 100).toLocaleString('en-ZA')}
-          </p>
-          <span className={cn(
-            'text-[10px] font-semibold px-1.5 py-0.5 rounded-sm',
-            STATUS_CLASS[jobCard.status] ?? 'bg-ink-100 text-ink-600'
-          )}>
+          <p className="text-sm font-semibold text-ink-900">{fmt(jobCard.amountCents)}</p>
+          <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-sm', STATUS_CLASS[jobCard.status] ?? 'bg-ink-100 text-ink-600')}>
             {STATUS_LABEL[jobCard.status] ?? jobCard.status}
           </span>
         </div>
@@ -74,14 +77,45 @@ export default async function ContractorJobCardDetailPage({ params }: Props) {
         <p className="text-xs text-ink-600 whitespace-pre-line">{jobCard.scopeOfWork}</p>
       </div>
 
-      {/* Approve banner */}
-      {isPendingReview && (
-        <div className="rounded-md border border-warning-200 bg-warning-50/40 px-4 py-3 flex items-center justify-between gap-4">
+      {/* ── ESCROW STATE BANNERS ── */}
+
+      {/* 1. Awaiting payment */}
+      {isAwaitingPayment && escrowPayment && bankAccount && (
+        <EscrowPaymentBanner
+          jobCardId={id}
+          amountCents={escrowPayment.amountCents}
+          reference={escrowPayment.reference ?? ''}
+          bankAccount={bankAccount}
+          proofUrl={escrowPayment.proofOfPaymentUrl}
+          paymentStatus={escrowPayment.status}
+          uploadAction={uploadEscrowProof}
+        />
+      )}
+
+      {/* 2. Funds locked in escrow, work in progress */}
+      {isLocked && !isPendingReview && !isCompleted && (
+        <div className="rounded-md border border-accent-200 bg-accent-50/30 px-4 py-3 flex items-center gap-3">
+          <Lock className="h-4 w-4 text-accent-600 flex-shrink-0" strokeWidth={1.5} />
           <div>
-            <p className="text-sm font-medium text-ink-900">Deliverables submitted for review</p>
+            <p className="text-sm font-medium text-ink-900">Funds held in escrow</p>
             <p className="text-xs text-ink-500 mt-0.5">
-              {jobCard.providerCompany.name} has submitted deliverables. Review and approve to mark this job complete.
+              {fmt(jobCard.amountCents)} is locked until {jobCard.providerCompany.name} completes the work and you approve the deliverables.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Pending review — approve to release payment */}
+      {isPendingReview && !isCompleted && (
+        <div className="rounded-md border border-warning-200 bg-warning-50/40 px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-4 w-4 text-warning-600 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+            <div>
+              <p className="text-sm font-medium text-ink-900">Deliverables submitted — review and release payment</p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                {jobCard.providerCompany.name} has submitted work for review. Approving releases {fmt(jobCard.amountCents)} from escrow.
+              </p>
+            </div>
           </div>
           <form action={markJobCardComplete}>
             <input type="hidden" name="jobCardId" value={id} />
@@ -90,17 +124,19 @@ export default async function ContractorJobCardDetailPage({ params }: Props) {
               className="flex-shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-md bg-ink-900 text-white text-xs font-medium hover:bg-ink-800 transition-colors"
             >
               <CheckCircle className="h-3.5 w-3.5" strokeWidth={1.5} />
-              Approve &amp; complete
+              Approve &amp; release
             </button>
           </form>
         </div>
       )}
 
-      {/* Completed banner */}
-      {isCompleted && (
-        <div className="rounded-md border border-success-500/20 bg-success-50/20 px-4 py-3">
-          <p className="text-sm font-medium text-success-700">Job complete — payment released</p>
-          <p className="text-xs text-ink-500 mt-0.5">All deliverables approved and escrow released to {jobCard.providerCompany.name}.</p>
+      {/* 4. Completed */}
+      {isReleased && isCompleted && (
+        <div className="rounded-md border border-success-500/20 bg-success-50/20 px-4 py-3 space-y-0.5">
+          <p className="text-sm font-medium text-success-700">Payment released</p>
+          <p className="text-xs text-ink-500">
+            {fmt(spPayout)} paid to {jobCard.providerCompany.name} · SEE platform fee: {fmt(jobCard.seePlatformFeeCents)}
+          </p>
         </div>
       )}
 
@@ -111,10 +147,7 @@ export default async function ContractorJobCardDetailPage({ params }: Props) {
           <JobCardDeliverables
             jobCardId={id}
             deliverables={jobCard.deliverables.map((d) => ({
-              id: d.id,
-              name: d.name,
-              url: d.url,
-              version: d.version,
+              id: d.id, name: d.name, url: d.url, version: d.version,
               createdAt: d.createdAt.toISOString(),
             }))}
             canUpload={false}
@@ -128,9 +161,7 @@ export default async function ContractorJobCardDetailPage({ params }: Props) {
             jobCardId={id}
             userId={userId}
             initialMessages={jobCard.messages.map((m) => ({
-              id: m.id,
-              senderUserId: m.senderUserId,
-              body: m.body,
+              id: m.id, senderUserId: m.senderUserId, body: m.body,
               createdAt: m.createdAt.toISOString(),
             }))}
           />

@@ -1,0 +1,10 @@
+-- AlterEnum
+ALTER TYPE "EscrowStatus" ADD VALUE 'AWAITING_PAYMENT';
+
+-- AlterEnum
+ALTER TYPE "LineItemType" ADD VALUE 'SERVICE_ESCROW';
+
+-- AlterTable
+ALTER TABLE "JobCard" ADD COLUMN     "escrowPaymentId" TEXT,
+ADD COLUMN     "seePlatformFeeCents" INTEGER NOT NULL DEFAULT 0,
+ALTER COLUMN "escrowStatus" SET DEFAULT 'AWAITING_PAYMENT';

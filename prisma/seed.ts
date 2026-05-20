@@ -875,6 +875,7 @@ async function main() {
         providerCompanyId: mokoena.id,
         scopeOfWork: 'Full EIA including public participation, wetland assessment, NEMA compliance. PE-stamped report and supporting hydrological model.',
         amountCents: 38_500_00,
+        seePlatformFeeCents: 38_500_00 * 0.05, // 5% SEE commission
         escrowStatus: 'LOCKED',
         status: 'ACTIVE',
         deliverables: {

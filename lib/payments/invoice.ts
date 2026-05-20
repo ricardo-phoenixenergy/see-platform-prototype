@@ -1,4 +1,5 @@
 // lib/payments/invoice.ts
+// Invoice factories for O&M license activation and service escrow deposits.
 
 import { db } from '@/lib/db'
 import { generatePaymentReference } from './reference'
@@ -68,4 +69,65 @@ export async function createOmLicenseInvoice({
   const payment = invoice.payments[0]
   if (!payment) throw new Error('Payment not created')
   return { invoice, payment }
+}
+
+const SEE_PLATFORM_FEE_RATE = 0.05 // 5% commission on service jobs
+
+export async function createServiceEscrowInvoice({
+  jobCardId,
+  contractorCompanyId,
+  serviceDescription,
+  amountCents,
+}: {
+  jobCardId: string
+  contractorCompanyId: string
+  serviceDescription: string
+  amountCents: number
+}) {
+  const platformFeeCents = Math.round(amountCents * SEE_PLATFORM_FEE_RATE)
+  const subtotalCents = amountCents
+  const vatCents = Math.round(subtotalCents * VAT_RATE)
+  const totalCents = subtotalCents + vatCents
+  const dueDate = new Date()
+  dueDate.setDate(dueDate.getDate() + 7)
+
+  const invoice = await db.invoice.create({
+    data: {
+      invoiceNumber: nextInvoiceNumber(),
+      issuerType: 'PLATFORM',
+      issuerCompanyId: null,
+      recipientCompanyId: contractorCompanyId,
+      status: 'AWAITING_PAYMENT',
+      subtotalCents,
+      vatRate: VAT_RATE,
+      vatCents,
+      totalCents,
+      dueDate,
+      notes: `Service escrow — ${serviceDescription}`,
+      lineItems: {
+        create: [{
+          description: serviceDescription,
+          quantity: 1,
+          unitPriceCents: amountCents,
+          totalCents: amountCents,
+          type: 'SERVICE_ESCROW' as const,
+          relatedEntityId: jobCardId,
+        }],
+      },
+      payments: {
+        create: [{
+          rail: 'EFT' as const,
+          amountCents: totalCents,
+          status: 'AWAITING_PROOF' as const,
+          reference: generatePaymentReference(),
+          expiresAt: (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d })(),
+        }],
+      },
+    },
+    include: { payments: true },
+  })
+
+  const payment = invoice.payments[0]
+  if (!payment) throw new Error('Escrow payment not created')
+  return { invoice, payment, platformFeeCents }
 }

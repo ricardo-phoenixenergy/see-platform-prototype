@@ -635,13 +635,15 @@ enum BidStatus {
 }
 
 model JobCard {
-  id                String        @id @default(cuid())
-  rfqId             String        @unique
-  providerCompanyId String
-  scopeOfWork       String
-  amountCents       Int
-  escrowStatus      EscrowStatus  @default(LOCKED)
-  status            JobCardStatus @default(ACTIVE)
+  id                  String        @id @default(cuid())
+  rfqId               String        @unique
+  providerCompanyId   String
+  scopeOfWork         String
+  amountCents         Int
+  escrowStatus        EscrowStatus  @default(AWAITING_PAYMENT)
+  status              JobCardStatus @default(ACTIVE)
+  escrowPaymentId     String?       // Payment.id — plain ref, no FK (prototype)
+  seePlatformFeeCents Int           @default(0)
 
   rfq             Rfq              @relation(fields: [rfqId], references: [id])
   providerCompany Company          @relation("JobCardProvider", fields: [providerCompanyId], references: [id])
@@ -663,6 +665,7 @@ enum JobCardStatus {
 }
 
 enum EscrowStatus {
+  AWAITING_PAYMENT
   LOCKED
   RELEASED
   REFUNDED
@@ -1155,6 +1158,7 @@ enum LineItemType {
   PLATFORM_FEE
   HARDWARE
   SUBSCRIPTION
+  SERVICE_ESCROW
   ESCROW_DEPOSIT
   COMMISSION_PAYOUT
   TOKEN_PURCHASE

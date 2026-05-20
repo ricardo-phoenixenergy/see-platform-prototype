@@ -25,8 +25,9 @@ export default async function JobCardDetailPage({ params }: Props) {
   if (!session) redirect('/login')
 
   const { id } = await params
-  const jobCard = await getJobCardDetail(id)
-  if (!jobCard) notFound()
+  const data = await getJobCardDetail(id)
+  if (!data) notFound()
+  const { escrowPayment: _ep, bankAccount: _ba, ...jobCard } = data
 
   const isActive = jobCard.status === 'ACTIVE'
   const userId = session.user.id ?? ''
@@ -50,6 +51,15 @@ export default async function JobCardDetailPage({ params }: Props) {
           <p className="text-sm font-semibold text-ink-900">
             R {(jobCard.amountCents / 100).toLocaleString('en-ZA')}
           </p>
+          {jobCard.seePlatformFeeCents > 0 && (
+            <p className="text-[10px] text-ink-400 mt-0.5">
+              You receive{' '}
+              <span className="font-semibold text-ink-700">
+                R {((jobCard.amountCents - jobCard.seePlatformFeeCents) / 100).toLocaleString('en-ZA')}
+              </span>{' '}
+              after {((jobCard.seePlatformFeeCents / jobCard.amountCents) * 100).toFixed(0)}% platform fee
+            </p>
+          )}
           <span className={cn(
             'text-[10px] font-semibold px-1.5 py-0.5 rounded-sm',
             STATUS_CLASS[jobCard.status] ?? 'bg-ink-100 text-ink-600'

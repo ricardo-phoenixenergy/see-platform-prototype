@@ -3,25 +3,28 @@
 import { useState, useMemo } from 'react'
 import { ShoppingCart, X, Trash2, Plus, Minus, CheckCircle, Coins } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
-import { TOKENS_PER_RAND } from '@/lib/tier/rules'
+import { TOKENS_PER_RAND, maxTokenBurnForHardware } from '@/lib/tier/rules'
 import { cn } from '@/lib/utils'
 
 function fmt(cents: number) {
   return (cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2 })
 }
 
-function CartPanel({ onClose, tokenBalance }: { onClose: () => void; tokenBalance: number }) {
+function CartPanel({
+  onClose, tokenBalance, discountPercent = 0,
+}: {
+  onClose: () => void; tokenBalance: number; discountPercent?: number
+}) {
   const { items, removeItem, updateQty, clear, totalCents } = useCartStore()
   const [tokensToburn, setTokensToBurn] = useState(0)
   const [ordered, setOrdered] = useState(false)
 
   const total = totalCents()
 
-  // Max tokens burnable = min(tokens needed to cover full order, available balance)
-  // 10 tokens = R1, so to cover total_cents you need total_cents/100 * 10 = total_cents/10
+  // Cap: net discount (tier + tokens) must not exceed 10%
   const maxBurnable = useMemo(
-    () => Math.min(Math.floor(total / TOKENS_PER_RAND), tokenBalance),
-    [total, tokenBalance]
+    () => maxTokenBurnForHardware(total, discountPercent, tokenBalance),
+    [total, discountPercent, tokenBalance]
   )
 
   const tokenDiscountCents = Math.round((tokensToburn / TOKENS_PER_RAND) * 100)
@@ -225,9 +228,9 @@ function CartPanel({ onClose, tokenBalance }: { onClose: () => void; tokenBalanc
   )
 }
 
-type CartButtonProps = { tokenBalance?: number }
+type CartButtonProps = { tokenBalance?: number; discountPercent?: number }
 
-export function CartButton({ tokenBalance = 0 }: CartButtonProps) {
+export function CartButton({ tokenBalance = 0, discountPercent = 0 }: CartButtonProps) {
   const [open, setOpen] = useState(false)
   const itemCount = useCartStore((s) => s.itemCount())
 
@@ -255,7 +258,7 @@ export function CartButton({ tokenBalance = 0 }: CartButtonProps) {
         )}
       </button>
 
-      {open && <CartPanel onClose={() => setOpen(false)} tokenBalance={tokenBalance} />}
+      {open && <CartPanel onClose={() => setOpen(false)} tokenBalance={tokenBalance} discountPercent={discountPercent} />}
     </div>
   )
 }

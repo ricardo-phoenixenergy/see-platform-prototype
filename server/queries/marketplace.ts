@@ -94,31 +94,43 @@ export async function getSpJobCards(companyId: string) {
 }
 
 export async function getJobCardDetail(id: string) {
-  return db.jobCard.findUnique({
-    where: { id },
-    include: {
-      rfq: {
-        select: {
-          title: true,
-          description: true,
-          scopeOfWork: true,
-          category: true,
-          project: {
-            select: {
-              name: true,
-              stage: true,
-              systemSizeKw: true,
-              contractorCompanyId: true,
-              contractorCompany: { select: { name: true } },
+  const [jobCard, bankAccount] = await Promise.all([
+    db.jobCard.findUnique({
+      where: { id },
+      include: {
+        rfq: {
+          select: {
+            title: true,
+            description: true,
+            scopeOfWork: true,
+            category: true,
+            project: {
+              select: {
+                name: true,
+                stage: true,
+                systemSizeKw: true,
+                contractorCompanyId: true,
+                contractorCompany: { select: { name: true } },
+              },
             },
           },
         },
+        providerCompany: { select: { name: true } },
+        deliverables: { orderBy: { version: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
       },
-      providerCompany: { select: { name: true } },
-      deliverables: { orderBy: { version: 'asc' } },
-      messages: { orderBy: { createdAt: 'asc' } },
-    },
-  })
+    }),
+    db.platformBankAccount.findFirst(),
+  ])
+
+  if (!jobCard) return null
+
+  // Fetch escrow payment separately (plain ref, no Prisma relation)
+  const escrowPayment = jobCard.escrowPaymentId
+    ? await db.payment.findUnique({ where: { id: jobCard.escrowPaymentId } })
+    : null
+
+  return { ...jobCard, escrowPayment, bankAccount }
 }
 
 export async function getOpenRfqsForSp(categories: string[]) {

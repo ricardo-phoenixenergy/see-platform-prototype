@@ -98,6 +98,32 @@ export function randToTokens(rand: number): number {
   return Math.floor(rand * TOKENS_PER_RAND)
 }
 
+// Net discount cap: tier discount + token discount must not exceed 10%.
+// discountedTotalCents is the cart total AFTER tier discount is applied.
+// Returns max tokens burnable without breaching the 10% cap.
+export function maxTokenBurnForHardware(
+  discountedTotalCents: number,
+  tierDiscountPercent: number,
+  tokenBalance: number
+): number {
+  if (tierDiscountPercent >= 10) return 0
+  // remaining room = (10 - tierDiscount)% of the ORIGINAL price
+  // originalCents = discountedCents / (1 - tierDiscount/100)
+  const originalCents = discountedTotalCents / (1 - tierDiscountPercent / 100)
+  const maxSavingsCents = Math.floor(originalCents * (10 - tierDiscountPercent) / 100)
+  return Math.min(Math.floor(maxSavingsCents / TOKENS_PER_RAND), tokenBalance)
+}
+
+// For service payments (no tier discount already applied):
+// cap is simply 10% of the bid amount.
+export function maxTokenBurnForService(
+  bidAmountCents: number,
+  tokenBalance: number
+): number {
+  const maxSavingsCents = Math.floor(bidAmountCents * 10 / 100)
+  return Math.min(Math.floor(maxSavingsCents / TOKENS_PER_RAND), tokenBalance)
+}
+
 // Keep legacy aliases so existing imports don't break
 export const TOKEN_BASE_MILESTONE    = TOKEN_AI_REVIEW
 export const TOKEN_BASE_HARD_GATE    = TOKEN_EXPERT_REVIEW

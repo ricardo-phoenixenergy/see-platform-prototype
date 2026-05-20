@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { z } from 'zod'
 import type { ServiceCategory } from '@/lib/generated/prisma/client'
+import { createServiceEscrowInvoice } from '@/lib/payments/invoice'
 
 // ─── RFQ ─────────────────────────────────────────────────────────────────────
 
@@ -75,29 +76,50 @@ export async function acceptBid(formData: FormData) {
   const bidId = z.string().parse(formData.get('bidId'))
   const bid = await db.bid.findUnique({
     where: { id: bidId },
-    include: { rfq: { select: { id: true, scopeOfWork: true, status: true } } },
+    include: {
+      rfq: {
+        select: {
+          id: true, title: true, scopeOfWork: true, status: true,
+          project: { select: { contractorCompanyId: true } },
+        },
+      },
+    },
   })
   if (!bid) throw new Error('Bid not found')
   if (bid.rfq.status === 'AWARDED') throw new Error('RFQ already awarded')
 
-  await db.$transaction([
-    db.bid.update({ where: { id: bidId }, data: { status: 'ACCEPTED' } }),
-    db.bid.updateMany({
-      where: { rfqId: bid.rfqId, id: { not: bidId } },
-      data: { status: 'REJECTED' },
-    }),
-    db.rfq.update({ where: { id: bid.rfqId }, data: { status: 'AWARDED' } }),
-    db.jobCard.create({
-      data: {
-        rfqId: bid.rfqId,
-        providerCompanyId: bid.providerCompanyId,
-        scopeOfWork: bid.rfq.scopeOfWork,
-        amountCents: bid.amountCents,
-        escrowStatus: 'LOCKED',
-        status: 'ACTIVE',
-      },
-    }),
-  ])
+  const platformFeeCents = Math.round(bid.amountCents * 0.05)
+
+  // Create job card first
+  await db.bid.update({ where: { id: bidId }, data: { status: 'ACCEPTED' } })
+  await db.bid.updateMany({ where: { rfqId: bid.rfqId, id: { not: bidId } }, data: { status: 'REJECTED' } })
+  await db.rfq.update({ where: { id: bid.rfqId }, data: { status: 'AWARDED' } })
+  const jobCard = await db.jobCard.create({
+    data: {
+      rfqId: bid.rfqId,
+      providerCompanyId: bid.providerCompanyId,
+      scopeOfWork: bid.rfq.scopeOfWork,
+      amountCents: bid.amountCents,
+      seePlatformFeeCents: platformFeeCents,
+      escrowStatus: 'AWAITING_PAYMENT',
+      status: 'ACTIVE',
+    },
+  })
+
+  // Create escrow invoice + payment
+  const contractorCompanyId = bid.rfq.project.contractorCompanyId
+  const { payment } = await createServiceEscrowInvoice({
+    jobCardId: jobCard.id,
+    contractorCompanyId,
+    serviceDescription: bid.rfq.title,
+    amountCents: bid.amountCents,
+  })
+
+  // Link payment back to job card
+  await db.jobCard.update({
+    where: { id: jobCard.id },
+    data: { escrowPaymentId: payment.id },
+  })
 
   revalidatePath('/contractor/service-center')
   revalidatePath(`/contractor/service-center/rfq/${bid.rfqId}`)
@@ -137,12 +159,46 @@ export async function submitDeliverable(formData: FormData) {
 
 export async function markJobCardComplete(formData: FormData) {
   const jobCardId = z.string().parse(formData.get('jobCardId'))
+  const jobCard = await db.jobCard.findUnique({
+    where: { id: jobCardId },
+    select: { escrowPaymentId: true },
+  })
+
   await db.jobCard.update({
     where: { id: jobCardId },
     data: { status: 'COMPLETED', completedAt: new Date(), escrowStatus: 'RELEASED' },
   })
+
+  // Mark the escrow payment as released
+  if (jobCard?.escrowPaymentId) {
+    await db.payment.update({
+      where: { id: jobCard.escrowPaymentId },
+      data: { status: 'PAID' },
+    })
+  }
+
   revalidatePath(`/contractor/service-center/job-cards/${jobCardId}`)
+  revalidatePath(`/service-provider/job-cards/${jobCardId}`)
   revalidatePath('/contractor/service-center')
+}
+
+export async function uploadEscrowProof(formData: FormData) {
+  const jobCardId = z.string().parse(formData.get('jobCardId'))
+  const proofUrl = z.string().url().parse(formData.get('proofUrl'))
+
+  const jobCard = await db.jobCard.findUnique({
+    where: { id: jobCardId },
+    select: { escrowPaymentId: true },
+  })
+  if (!jobCard?.escrowPaymentId) throw new Error('No escrow payment found')
+
+  await db.payment.update({
+    where: { id: jobCard.escrowPaymentId },
+    data: { proofOfPaymentUrl: proofUrl, status: 'AWAITING_RECONCILIATION' },
+  })
+
+  revalidatePath(`/contractor/service-center/job-cards/${jobCardId}`)
+  revalidatePath('/admin/financial')
 }
 
 const messageSchema = z.object({
