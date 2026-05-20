@@ -2,17 +2,18 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { RfqForm } from '@/components/marketplace/rfq-form'
+import { getSpProfileForContractor } from '@/server/queries/marketplace'
 
-type Props = { searchParams: Promise<{ milestone?: string }> }
+type Props = { searchParams: Promise<{ milestone?: string; provider?: string }> }
 
 export default async function NewRfqPage({ searchParams }: Props) {
   const session = await auth()
   if (!session) redirect('/login')
 
-  const { milestone: milestoneId } = await searchParams
+  const { milestone: milestoneId, provider: providerCompanyId } = await searchParams
   const companyId = session.user.companyId
 
-  const [projects, milestone] = await Promise.all([
+  const [projects, milestone, spData] = await Promise.all([
     db.project.findMany({
       where: { contractorCompanyId: companyId, deletedAt: null },
       select: { id: true, name: true },
@@ -24,6 +25,7 @@ export default async function NewRfqPage({ searchParams }: Props) {
           select: { id: true, name: true, projectId: true },
         })
       : Promise.resolve(null),
+    providerCompanyId ? getSpProfileForContractor(providerCompanyId) : Promise.resolve(null),
   ])
 
   const defaultProjectId = milestone?.projectId ?? projects[0]?.id ?? ''
@@ -41,6 +43,11 @@ export default async function NewRfqPage({ searchParams }: Props) {
         <RfqForm
           projectId={defaultProjectId}
           {...(milestone ? { milestoneId: milestone.id, milestoneName: milestone.name } : {})}
+          {...(spData ? {
+            providerCategories: spData.profile.categories,
+            providerName: spData.profile.company.name,
+            providerCompanyId,
+          } : {})}
         />
       )}
     </div>

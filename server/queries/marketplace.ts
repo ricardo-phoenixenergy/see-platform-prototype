@@ -140,6 +140,36 @@ export async function getSpProfile(companyId: string) {
   return db.serviceProviderProfile.findUnique({ where: { companyId } })
 }
 
+export async function getSpProfileForContractor(companyId: string) {
+  const [profile, reviews] = await Promise.all([
+    db.serviceProviderProfile.findUnique({
+      where: { companyId },
+      include: {
+        company: { select: { id: true, name: true, logoUrl: true, about: true, phone: true, email: true, websiteUrl: true } },
+      },
+    }),
+    db.review.findMany({
+      where: { reviewedCompanyId: companyId },
+      include: {
+        jobCard: {
+          select: {
+            rfq: {
+              select: {
+                project: {
+                  select: { contractorCompany: { select: { name: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    }),
+  ])
+  return profile ? { profile, reviews } : null
+}
+
 export async function getSpStats(companyId: string) {
   const [activeJobs, completedJobs, totalBids] = await Promise.all([
     db.jobCard.count({ where: { providerCompanyId: companyId, status: 'ACTIVE' } }),

@@ -18,9 +18,15 @@ type Props = {
   projectId: string
   milestoneId?: string
   milestoneName?: string
+  providerCategories?: string[]
+  providerName?: string
+  providerCompanyId?: string
 }
 
-export function RfqForm({ projectId, milestoneId, milestoneName }: Props) {
+export function RfqForm({ projectId, milestoneId, milestoneName, providerCategories, providerName }: Props) {
+  const availableCategories = providerCategories?.length
+    ? CATEGORIES.filter((c) => providerCategories.includes(c.value))
+    : CATEGORIES
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [category, setCategory] = useState('STRUCTURAL_CIVILS')
@@ -59,6 +65,12 @@ export function RfqForm({ projectId, milestoneId, milestoneName }: Props) {
 
   return (
     <div className="space-y-5">
+      {providerName && (
+        <div className="rounded-md bg-ink-50 border border-ink-200 px-3 py-2 text-xs text-ink-700">
+          Directed to: <span className="font-semibold">{providerName}</span>
+          <span className="text-ink-400"> — category options filtered to their services</span>
+        </div>
+      )}
       {milestoneName && (
         <div className="rounded-md bg-accent-500/5 border border-accent-200 px-3 py-2 text-xs text-accent-700">
           Linked to milestone: <span className="font-semibold">{milestoneName}</span>
@@ -72,7 +84,7 @@ export function RfqForm({ projectId, milestoneId, milestoneName }: Props) {
           onChange={(e) => setCategory(e.target.value)}
           className="w-full h-9 rounded-md border border-ink-200 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/20"
         >
-          {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          {availableCategories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
       </div>
 

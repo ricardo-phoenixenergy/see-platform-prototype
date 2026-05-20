@@ -23,7 +23,7 @@ type Props = {
 }
 
 export function SpCard({
-  name, headline, categories, serviceAreas, rating, ratingCount, postRfqHref,
+  companyId, name, headline, categories, serviceAreas, rating, ratingCount, postRfqHref,
 }: Props) {
   return (
     <div className="rounded-lg border border-ink-200 bg-white p-5 space-y-3 hover:border-ink-300 transition-colors">
@@ -56,14 +56,22 @@ export function SpCard({
         </div>
       )}
 
-      {postRfqHref && (
+      <div className="flex items-center gap-2 pt-1">
         <Link
-          href={postRfqHref}
-          className="inline-flex items-center h-7 px-3 rounded-md bg-ink-900 text-white text-xs font-medium hover:bg-ink-800 transition-colors"
+          href={`/contractor/service-center/providers/${companyId}`}
+          className="inline-flex items-center h-7 px-3 rounded-md border border-ink-200 text-xs font-medium text-ink-600 hover:bg-ink-50 transition-colors"
         >
-          Post RFQ
+          View Company
         </Link>
-      )}
+        {postRfqHref && (
+          <Link
+            href={postRfqHref}
+            className="inline-flex items-center h-7 px-3 rounded-md bg-ink-900 text-white text-xs font-medium hover:bg-ink-800 transition-colors"
+          >
+            Post RFQ
+          </Link>
+        )}
+      </div>
     </div>
   )
 }

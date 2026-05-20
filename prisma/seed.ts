@@ -892,6 +892,19 @@ async function main() {
     })
   }
 
+  // Reviews for Mokoena — shown on their profile page
+  await db.review.upsert({
+    where: { id: 'review-mokoena-1' } as never,
+    update: {},
+    create: {
+      id: 'review-mokoena-1',
+      jobCardId: 'jobcard-kruger-eia',
+      reviewedCompanyId: mokoena.id,
+      rating: 5,
+      text: 'Lerato and her team were exceptional — PE-stamped report delivered ahead of schedule, and they flagged a stormwater issue we had missed. Would use again without hesitation.',
+    } as never,
+  })
+
   console.log('  ✓ RFQs, bids, job card (marketplace demo data)')
 
   // -------------------------------------------------------------------------
