@@ -70,6 +70,23 @@ export function getCashbackRate(tier: Tier): number {
   return TIER_DISCOUNT_RATES[tier]
 }
 
+// Token earn rates
+export const TOKEN_BASE_MILESTONE    = 50   // standard milestone verified
+export const TOKEN_BASE_HARD_GATE    = 100  // hard-gate milestone verified
+export const TOKEN_BASE_PROJECT_DONE = 250  // project reaches OPERATIONAL stage
+
+export const TIER_TOKEN_MULTIPLIERS: Record<Tier, number> = {
+  BRONZE:   1,
+  SILVER:   1.5,
+  GOLD:     2,
+  PLATINUM: 3,
+}
+
+export function tokensForMilestone(tier: Tier, isHardGate: boolean): number {
+  const base = isHardGate ? TOKEN_BASE_HARD_GATE : TOKEN_BASE_MILESTONE
+  return Math.round(base * TIER_TOKEN_MULTIPLIERS[tier])
+}
+
 export function getNextTier(tier: Tier): Tier | null {
   const idx = TIER_ORDER.indexOf(tier)
   return idx < TIER_ORDER.length - 1 ? (TIER_ORDER[idx + 1] ?? null) : null
