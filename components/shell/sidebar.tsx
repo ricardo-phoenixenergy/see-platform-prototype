@@ -9,7 +9,7 @@ import { Wordmark } from '@/components/brand/wordmark'
 import {
   LayoutDashboard, FolderOpen, ShoppingBag, Wallet,
   Building2, ChevronLeft, ChevronRight, Wrench, TrendingUp, Lock,
-  ClipboardList, Scale, HelpCircle, Settings, BarChart3, Briefcase, User, Link2, Layers,
+  ClipboardList, Scale, HelpCircle, Settings, BarChart3, Briefcase, User, Link2, Layers, Users,
 } from 'lucide-react'
 
 export type NavItem = {
@@ -158,6 +158,7 @@ export function Sidebar({ navItems, tierInfo }: Props) {
 export const CONTRACTOR_NAV: NavItem[] = [
   { label: 'Dashboard', href: '/contractor', icon: LayoutDashboard },
   { label: 'Projects', href: '/contractor/projects', icon: FolderOpen },
+  { label: 'Clients', href: '/contractor/clients', icon: Users },
   { label: 'Marketplace', href: '/contractor/marketplace', icon: ShoppingBag },
   { label: 'Service Centre', href: '/contractor/service-center', icon: Wrench },
   { label: 'Leads', href: '/contractor/leads', icon: TrendingUp, minTier: 'SILVER' as const },
