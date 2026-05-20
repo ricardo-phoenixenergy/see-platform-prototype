@@ -60,7 +60,7 @@ export async function getRfqDetail(id: string) {
     where: { id },
     include: {
       milestone: { select: { name: true } },
-      project: { select: { name: true, contractorCompanyId: true } },
+      project: { select: { name: true, contractorCompanyId: true, contractorCompany: { select: { name: true } } } },
       bids: {
         include: {
           providerCompany: {
