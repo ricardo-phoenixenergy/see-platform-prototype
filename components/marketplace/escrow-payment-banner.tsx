@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { AlertCircle, Copy, Check, Upload, Loader2 } from 'lucide-react'
+import { AlertCircle, Copy, Check, Upload, Loader2, FileText, X } from 'lucide-react'
 
 type BankAccount = {
   accountName: string
@@ -29,11 +29,12 @@ export function EscrowPaymentBanner({
   proofUrl, paymentStatus, uploadAction,
 }: Props) {
   const [copied, setCopied] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploaded, setUploaded] = useState(!!proofUrl)
+  const [uploadError, setUploadError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const isAwaitingProof = paymentStatus === 'AWAITING_PROOF'
   const isAwaitingRecon = paymentStatus === 'AWAITING_RECONCILIATION' || paymentStatus === 'PROOF_UPLOADED'
 
   function copy(text: string, key: string) {
@@ -42,25 +43,44 @@ export function EscrowPaymentBanner({
     setTimeout(() => setCopied(null), 1800)
   }
 
-  async function handleFileUpload(file: File) {
+  async function handleSubmit() {
+    if (!selectedFile) return
     setUploading(true)
+    setUploadError('')
+
     try {
+      // Step 1: Sign upload
       const signRes = await fetch('/api/upload/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, size: file.size, mimeType: file.type, purpose: 'proof_of_payment' }),
+        body: JSON.stringify({
+          filename: selectedFile.name,
+          size: selectedFile.size,
+          mimeType: selectedFile.type,
+          purpose: 'proof_of_payment',
+        }),
       })
-      if (!signRes.ok) throw new Error('Failed to sign upload')
+      if (!signRes.ok) throw new Error('Failed to prepare upload. Please try again.')
       const { uploadUrl } = await signRes.json() as { uploadUrl: string }
-      await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
 
+      // Step 2: Upload file
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': selectedFile.type },
+        body: selectedFile,
+      })
+      if (!putRes.ok) throw new Error('File upload failed. Please try again.')
+
+      // Step 3: Save proof via server action
       const fd = new FormData()
       fd.append('jobCardId', jobCardId)
       fd.append('proofUrl', uploadUrl)
       await uploadAction(fd)
+
       setUploaded(true)
+      setSelectedFile(null)
     } catch (err) {
-      console.error(err)
+      setUploadError(err instanceof Error ? err.message : 'Upload failed. Please try again.')
     } finally {
       setUploading(false)
     }
@@ -69,13 +89,13 @@ export function EscrowPaymentBanner({
   function Row({ label, value, copyKey }: { label: string; value: string; copyKey: string }) {
     return (
       <div className="flex items-center justify-between py-1.5 border-b border-ink-100 last:border-0">
-        <span className="text-xs text-ink-500 w-32 flex-shrink-0">{label}</span>
-        <div className="flex items-center gap-2 min-w-0">
+        <span className="text-xs text-ink-500 w-36 flex-shrink-0">{label}</span>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <span className="text-xs font-medium text-ink-900 truncate font-mono">{value}</span>
           <button
             type="button"
             onClick={() => copy(value, copyKey)}
-            className="text-ink-400 hover:text-ink-700 flex-shrink-0"
+            className="text-ink-300 hover:text-ink-700 flex-shrink-0 ml-auto"
             aria-label={`Copy ${label}`}
           >
             {copied === copyKey
@@ -88,30 +108,32 @@ export function EscrowPaymentBanner({
     )
   }
 
+  // ── Already submitted / awaiting confirmation ──
   if (isAwaitingRecon || uploaded) {
     return (
       <div className="rounded-md border border-ink-200 bg-ink-25 px-4 py-3 flex items-center gap-3">
         <Loader2 className="h-4 w-4 text-ink-400 animate-spin flex-shrink-0" strokeWidth={1.5} />
         <div>
-          <p className="text-sm font-medium text-ink-900">Proof of payment received — awaiting confirmation</p>
+          <p className="text-sm font-medium text-ink-900">Proof of payment submitted — awaiting confirmation</p>
           <p className="text-xs text-ink-500 mt-0.5">
-            Our team will confirm receipt of {fmt(amountCents)} and activate the job within 1 business day.
+            Our team will verify receipt and activate the job within 1 business day.
           </p>
         </div>
       </div>
     )
   }
 
+  // ── Awaiting proof ──
   return (
     <div className="rounded-md border border-warning-200 bg-warning-50/40 p-4 space-y-4">
+      {/* Header */}
       <div className="flex items-start gap-3">
         <AlertCircle className="h-4 w-4 text-warning-600 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
         <div>
           <p className="text-sm font-semibold text-ink-900">Escrow payment required to activate this job</p>
           <p className="text-xs text-ink-500 mt-0.5">
-            Transfer <span className="font-medium text-ink-700">{fmt(amountCents)}</span> to the account
-            below using the reference provided. Funds will be held in escrow until you approve the deliverables.
-            <span className="block mt-0.5 text-ink-400">All amounts excl. VAT — VAT invoice issued separately.</span>
+            Transfer <span className="font-medium text-ink-700">{fmt(amountCents)}</span> excl. VAT to the
+            account below using the exact reference. Upload proof of payment once sent.
           </p>
         </div>
       </div>
@@ -126,34 +148,85 @@ export function EscrowPaymentBanner({
         {bankAccount.branchCode && (
           <Row label="Branch code" value={bankAccount.branchCode} copyKey="branch" />
         )}
-        <Row label="Amount" value={fmt(amountCents)} copyKey="amount" />
-        <Row label="Reference" value={reference} copyKey="ref" />
+        <Row label="Amount" value={`${fmt(amountCents)} excl. VAT`} copyKey="amount" />
+        <div className="flex items-center justify-between py-1.5">
+          <span className="text-xs text-ink-500 w-36 flex-shrink-0">Reference</span>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-xs font-bold text-ink-900 font-mono tracking-wide">{reference}</span>
+            <button
+              type="button"
+              onClick={() => copy(reference, 'ref')}
+              className="text-ink-300 hover:text-ink-700 flex-shrink-0 ml-auto"
+              aria-label="Copy reference"
+            >
+              {copied === 'ref'
+                ? <Check className="h-3 w-3 text-success-500" strokeWidth={2} />
+                : <Copy className="h-3 w-3" strokeWidth={1.5} />
+              }
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* POP upload */}
-      {isAwaitingProof && (
-        <div>
-          <p className="text-xs font-medium text-ink-700 mb-2">Upload proof of payment</p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="application/pdf,image/png,image/jpeg"
-            className="sr-only"
-            onChange={(e) => { if (e.target.files?.[0]) void handleFileUpload(e.target.files[0]) }}
-          />
+      {/* POP upload — two-step: select then submit */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-ink-700">Upload proof of payment</p>
+
+        {!selectedFile ? (
+          <>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="application/pdf,image/png,image/jpeg"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) { setSelectedFile(f); setUploadError('') }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="flex items-center gap-2 h-9 px-4 rounded-md border-2 border-dashed border-ink-300 bg-white text-xs font-medium text-ink-600 hover:border-ink-400 hover:bg-ink-50 transition-colors w-full justify-center"
+            >
+              <Upload className="h-3.5 w-3.5" strokeWidth={1.5} />
+              Click to select PDF or image
+            </button>
+          </>
+        ) : (
+          <div className="flex items-center gap-3 rounded-md border border-ink-200 bg-white px-3 py-2">
+            <FileText className="h-4 w-4 text-ink-400 flex-shrink-0" strokeWidth={1.5} />
+            <span className="text-xs text-ink-700 flex-1 truncate">{selectedFile.name}</span>
+            <button
+              type="button"
+              onClick={() => { setSelectedFile(null); if (inputRef.current) inputRef.current.value = '' }}
+              className="text-ink-400 hover:text-ink-700"
+              aria-label="Remove file"
+            >
+              <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+            </button>
+          </div>
+        )}
+
+        {uploadError && (
+          <p className="text-xs text-danger-600">{uploadError}</p>
+        )}
+
+        {selectedFile && (
           <button
             type="button"
-            onClick={() => inputRef.current?.click()}
+            onClick={handleSubmit}
             disabled={uploading}
-            className="flex items-center gap-2 h-8 px-4 rounded-md border border-ink-200 bg-white text-xs font-medium text-ink-700 hover:bg-ink-50 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 h-9 rounded-md bg-ink-900 text-white text-sm font-medium hover:bg-ink-800 transition-colors disabled:opacity-50"
           >
-            {uploading
-              ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Uploading…</>
-              : <><Upload className="h-3.5 w-3.5" strokeWidth={1.5} />Upload POP (PDF or image)</>
-            }
+            {uploading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" />Submitting…</>
+            ) : (
+              'Submit proof of payment'
+            )}
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

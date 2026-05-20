@@ -189,21 +189,23 @@ export async function markJobCardComplete(formData: FormData) {
 }
 
 export async function uploadEscrowProof(formData: FormData) {
-  const jobCardId = z.string().parse(formData.get('jobCardId'))
-  const proofUrl = z.string().url().parse(formData.get('proofUrl'))
+  const jobCardId = z.string().safeParse(formData.get('jobCardId'))
+  const proofUrl = z.string().url().safeParse(formData.get('proofUrl'))
+  if (!jobCardId.success) throw new Error('Invalid job card ID')
+  if (!proofUrl.success) throw new Error('Invalid proof URL')
 
   const jobCard = await db.jobCard.findUnique({
-    where: { id: jobCardId },
+    where: { id: jobCardId.data },
     select: { escrowPaymentId: true },
   })
-  if (!jobCard?.escrowPaymentId) throw new Error('No escrow payment found')
+  if (!jobCard?.escrowPaymentId) throw new Error('No escrow payment found for this job card')
 
   await db.payment.update({
     where: { id: jobCard.escrowPaymentId },
-    data: { proofOfPaymentUrl: proofUrl, status: 'AWAITING_RECONCILIATION' },
+    data: { proofOfPaymentUrl: proofUrl.data, status: 'AWAITING_RECONCILIATION' },
   })
 
-  revalidatePath(`/contractor/service-center/job-cards/${jobCardId}`)
+  revalidatePath(`/contractor/service-center/job-cards/${jobCardId.data}`)
   revalidatePath('/admin/financial')
 }
 

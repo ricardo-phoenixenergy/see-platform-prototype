@@ -788,8 +788,8 @@ async function main() {
     },
   })
 
-  // Open RFQ — Grid Connection Application
-  await db.rfq.upsert({
+  // AWARDED RFQ — Grid Connection Application (demo: escrow payment flow)
+  const rfqGrid = await db.rfq.upsert({
     where: { id: 'rfq-alpha-grid' },
     update: {},
     create: {
@@ -801,24 +801,84 @@ async function main() {
       scopeOfWork: 'Single-line diagram, protection relay specification, grid application submission, liaison with City Power.',
       budgetCentsMax: 35_000_00,
       deadlineDays: 30,
-      status: 'OPEN',
+      status: 'AWARDED',
     },
   })
 
-  // Bid from Mokoena on the grid connection RFQ (SUBMITTED — ready to accept and demo escrow flow)
+  // Bid from Mokoena on the grid connection RFQ — ACCEPTED (bid is awarded)
   await db.bid.upsert({
     where: { id: 'bid-grid-mokoena' },
     update: {},
     create: {
       id: 'bid-grid-mokoena',
-      rfqId: 'rfq-alpha-grid',
+      rfqId: rfqGrid.id,
       providerCompanyId: mokoena.id,
       amountCents: 28_500_00,
       proposalText: 'We have extensive experience with City Power and Eskom grid connection applications for embedded generation up to 1MW. Our team includes a registered professional electrical engineer (Pr.Eng) who will prepare the full SLD, protection relay specification, and manage the submission process end-to-end. Typical approval timeline is 6–8 weeks after submission.',
       estimatedDays: 25,
-      status: 'SUBMITTED',
+      status: 'ACCEPTED',
     },
   })
+
+  // Escrow invoice + payment for grid job card (AWAITING_PROOF — demo starting state)
+  const gridPlatformFee = Math.round(28_500_00 * 0.05)
+  const gridVat = Math.round(28_500_00 * 0.15)
+  const gridInvoice = await db.invoice.upsert({
+    where: { invoiceNumber: 'SEE-INV-2026-GRID1' },
+    update: {},
+    create: {
+      invoiceNumber: 'SEE-INV-2026-GRID1',
+      issuerType: 'PLATFORM',
+      issuerCompanyId: null,
+      recipientCompanyId: adebayo.id,
+      status: 'AWAITING_PAYMENT',
+      subtotalCents: 28_500_00,
+      vatRate: 0.15,
+      vatCents: gridVat,
+      totalCents: 28_500_00 + gridVat,
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      notes: 'Service escrow — Grid Connection Application Support — 450kW Embedded Generation',
+      lineItems: {
+        create: [{
+          description: 'Grid Connection Application Support — 450kW Embedded Generation',
+          quantity: 1,
+          unitPriceCents: 28_500_00,
+          totalCents: 28_500_00,
+          type: 'SERVICE_ESCROW',
+          relatedEntityId: 'jobcard-grid',
+        }],
+      },
+      payments: {
+        create: [{
+          id: 'payment-grid-escrow',
+          rail: 'EFT',
+          amountCents: 28_500_00 + gridVat,
+          status: 'AWAITING_PROOF',
+          reference: 'SEE-ESC-240101',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        }],
+      },
+    },
+    include: { payments: true },
+  })
+  void gridInvoice // suppress unused warning
+
+  const existingGridJobCard = await db.jobCard.findUnique({ where: { id: 'jobcard-grid' } })
+  if (!existingGridJobCard) {
+    await db.jobCard.create({
+      data: {
+        id: 'jobcard-grid',
+        rfqId: rfqGrid.id,
+        providerCompanyId: mokoena.id,
+        scopeOfWork: 'Single-line diagram, protection relay specification, grid application submission, liaison with City Power.',
+        amountCents: 28_500_00,
+        seePlatformFeeCents: gridPlatformFee,
+        escrowStatus: 'AWAITING_PAYMENT',
+        status: 'ACTIVE',
+        escrowPaymentId: 'payment-grid-escrow',
+      },
+    })
+  }
 
   // Bid from Lerato's company on the structural RFQ
   await db.bid.upsert({

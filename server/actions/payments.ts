@@ -247,6 +247,14 @@ export async function reconcilePayment(paymentId: string, bankReference?: string
     }
   })
 
+  // Revalidate job card pages after escrow activation
+  if (escrowLineItem?.relatedEntityId) {
+    const jcId = escrowLineItem.relatedEntityId
+    revalidatePath(`/contractor/service-center/job-cards/${jcId}`)
+    revalidatePath(`/service-provider/job-cards/${jcId}`)
+    revalidatePath('/contractor/service-center')
+  }
+
   revalidatePath('/admin/financial')
   revalidatePath('/contractor/wallet')
   revalidatePath('/contractor/service-center')
