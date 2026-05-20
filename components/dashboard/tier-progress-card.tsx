@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CashbackRates } from '@/components/tier/cashback-rates'
 
@@ -28,16 +29,24 @@ export function TierProgressCard({ tier, compliantProjectCount, nextTierAt, prog
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Contractor tier</CardTitle>
-          <span
-            className="text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-sm"
-            style={{
-              color: colour,
-              backgroundColor: `${colour}18`,
-              border: `1px solid ${colour}40`,
-            }}
-          >
-            {TIER_LABELS[tier]}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className="text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-sm"
+              style={{
+                color: colour,
+                backgroundColor: `${colour}18`,
+                border: `1px solid ${colour}40`,
+              }}
+            >
+              {TIER_LABELS[tier]}
+            </span>
+            <Link
+              href="/contractor/tiers"
+              className="text-[10px] text-accent-600 hover:text-accent-700 font-medium transition-colors"
+            >
+              View benefits →
+            </Link>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

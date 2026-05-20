@@ -112,16 +112,18 @@ export function Sidebar({ navItems, tierInfo }: Props) {
           'border-t border-ink-100 py-3 px-3 flex-shrink-0',
           collapsed ? 'flex flex-col items-center gap-2' : 'space-y-2'
         )}>
-          {/* Tier badge */}
-          <div
+          {/* Tier badge — links to tier details page */}
+          <Link
+            href="/contractor/tiers"
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5',
+              'inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 transition-opacity hover:opacity-80',
               collapsed ? '' : 'w-full'
             )}
             style={{
               backgroundColor: `${TIER_COLOURS[tierInfo.tier] ?? '#8B95A0'}18`,
               border: `1px solid ${TIER_COLOURS[tierInfo.tier] ?? '#8B95A0'}40`,
             }}
+            title="View tier benefits"
           >
             <div
               className="h-1.5 w-1.5 rounded-full flex-shrink-0"
@@ -135,7 +137,7 @@ export function Sidebar({ navItems, tierInfo }: Props) {
                 {tierInfo.tier}
               </span>
             )}
-          </div>
+          </Link>
 
           {/* Token balance */}
           {!collapsed && (
