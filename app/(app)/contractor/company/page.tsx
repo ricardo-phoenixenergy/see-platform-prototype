@@ -86,6 +86,7 @@ export default async function CompanyPage() {
               registrationNo: company.registrationNo ?? '',
               vatNo: company.vatNo ?? '',
               beeeLevel: company.beeeLevel ?? null,
+              logoUrl: company.logoUrl ?? null,
             }}
           />
         </CardContent>
