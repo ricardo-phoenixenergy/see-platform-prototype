@@ -15,11 +15,6 @@ function daysAgo(n: number): Date {
   return d
 }
 
-function hoursAgo(n: number): Date {
-  const d = new Date()
-  d.setTime(d.getTime() - n * 60 * 60 * 1000)
-  return d
-}
 
 function daysFromNow(n: number): Date {
   const d = new Date()

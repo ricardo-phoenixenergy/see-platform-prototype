@@ -22,10 +22,11 @@ export function AiVerificationOverlay({ milestoneName, onComplete }: Props) {
       i++
       if (i >= AI_VERIFICATION_LOG_LINES.length) {
         clearInterval(interval)
+        setTimeout(onComplete, 800)
       }
     }, 900)
     return () => clearInterval(interval)
-  }, [])
+  }, [onComplete])
 
   return (
     <motion.div

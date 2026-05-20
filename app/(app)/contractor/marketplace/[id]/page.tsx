@@ -5,6 +5,7 @@ import { getTierInfo } from '@/server/queries/dashboard'
 import { TIER_DISCOUNT_RATES } from '@/lib/tier/rules'
 import { ProductAddToCart } from '@/components/marketplace/product-add-to-cart'
 import Link from 'next/link'
+import Image from 'next/image'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -40,7 +41,7 @@ export default async function ProductDetailPage({ params }: Props) {
         {/* Image */}
         <div className="rounded-lg border border-ink-200 bg-ink-50 h-64 flex items-center justify-center relative overflow-hidden">
           {listing.imageUrl
-            ? <img src={listing.imageUrl} alt={listing.model} className="h-full w-full object-contain p-6" />
+            ? <Image src={listing.imageUrl} alt={listing.model} fill className="object-contain p-6" unoptimized />
             : <span className="text-sm text-ink-400">{listing.category.replace('_', ' ')}</span>
           }
           {discountPercent > 0 && (

@@ -28,7 +28,7 @@ export default async function JobCardDetailPage({ params }: Props) {
   const { id } = await params
   const data = await getJobCardDetail(id)
   if (!data) notFound()
-  const { escrowPayment, bankAccount: _ba, ...jobCard } = data
+  const { escrowPayment, ...jobCard } = data
 
   const isActive = jobCard.status === 'ACTIVE' && jobCard.escrowStatus === 'LOCKED'
   const userId = session.user.id ?? ''

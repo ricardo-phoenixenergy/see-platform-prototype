@@ -1,6 +1,7 @@
 'use client'
 // components/marketplace/hardware-product-card.tsx
 
+import Image from 'next/image'
 import { useCartStore } from '@/lib/cart-store'
 import { ShoppingCart, CheckCircle, Plus, Minus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -46,7 +47,7 @@ export function HardwareProductCard({
     <div className="rounded-lg border border-ink-200 bg-white overflow-hidden flex flex-col hover:border-ink-300 transition-colors">
       <div className="h-40 bg-ink-50 flex items-center justify-center relative">
         {imageUrl
-          ? <img src={imageUrl} alt={model} className="h-full w-full object-contain p-4" />
+          ? <Image src={imageUrl} alt={model} fill className="object-contain p-4" unoptimized />
           : <span className="text-xs text-ink-400">{category.replace('_', ' ')}</span>
         }
         {discountPercent > 0 && (

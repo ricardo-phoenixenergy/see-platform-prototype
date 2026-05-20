@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Image from 'next/image'
 import { ShoppingCart, X, Trash2, Plus, Minus, CheckCircle, Coins } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
 import { TOKENS_PER_RAND, maxTokenBurnForHardware } from '@/lib/tier/rules'
@@ -82,9 +83,9 @@ function CartPanel({
             <ul className="divide-y divide-ink-100">
               {items.map((item) => (
                 <li key={item.id} className="px-5 py-4 flex items-start gap-3">
-                  <div className="h-12 w-12 rounded-md border border-ink-200 bg-ink-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="h-12 w-12 rounded-md border border-ink-200 bg-ink-50 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                     {item.imageUrl
-                      ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain p-1" />
+                      ? <Image src={item.imageUrl} alt={item.name} fill className="object-contain p-1" unoptimized />
                       : <ShoppingCart className="h-4 w-4 text-ink-300" strokeWidth={1.5} />
                     }
                   </div>

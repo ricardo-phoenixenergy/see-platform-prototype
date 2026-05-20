@@ -29,7 +29,7 @@ type Props = {
   initialData: FormData & { logoUrl?: string | null }
 }
 
-export function CompanyForm({ companyId: _companyId, initialData }: Props) {
+export function CompanyForm({ initialData }: Props) {
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [logoUrl, setLogoUrl] = useState(initialData.logoUrl ?? '')
@@ -37,7 +37,7 @@ export function CompanyForm({ companyId: _companyId, initialData }: Props) {
   const [logoError, setLogoError] = useState('')
   const logoInputRef = useRef<HTMLInputElement>(null)
 
-  const { register, handleSubmit, formState: { errors, isSubmitting, isDirty } } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as any,
     defaultValues: {

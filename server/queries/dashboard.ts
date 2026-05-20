@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { getCountToNextTier, getTierForMetrics, TIER_THRESHOLDS, TIER_ORDER, type Tier } from '@/lib/tier/rules'
+import { getTierForMetrics, TIER_THRESHOLDS, TIER_ORDER, type Tier } from '@/lib/tier/rules'
 
 export async function getTierInfo(companyId: string) {
   const [tier, wallet] = await Promise.all([
