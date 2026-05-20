@@ -6,6 +6,7 @@ import { Prisma } from '@/lib/generated/prisma/client'
 import { selectMilestoneTemplate } from '@/lib/milestone-templates'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { deriveTechnology } from '@/lib/tech-scope'
 
 const optNum = z.preprocess(
   v => (v === '' || v === undefined || v === null ? undefined : Number(v)),
@@ -79,13 +80,14 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
   const data = parsed.data
 
   // Derive the Technology enum for milestone template selection
-  const primaryCount = [data.hasPv, data.hasBess, data.hasWind].filter(Boolean).length
-  const technology = (
-    primaryCount > 1 ? 'HYBRID' :
-    data.hasBess ? 'BESS' :
-    data.hasWind ? 'WIND' :
-    'SOLAR_PV'
-  ) as 'SOLAR_PV' | 'WIND' | 'BESS' | 'HYBRID'
+  const technology = deriveTechnology({
+    hasPv: data.hasPv,
+    hasBess: data.hasBess,
+    hasWind: data.hasWind,
+    hasWheeling: data.hasWheeling,
+    designObjectives: data.designObjectives,
+    exportToGrid: data.exportToGrid,
+  })
 
   // Build techScope JSON from flat form fields
   const techScope = {

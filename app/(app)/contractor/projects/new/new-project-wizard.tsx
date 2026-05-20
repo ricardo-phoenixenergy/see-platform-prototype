@@ -106,12 +106,14 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
+  const defaultClient = defaultClientId ? clients.find(c => c.id === defaultClientId) : undefined
+
   const { register, handleSubmit, watch, setValue, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as any,
     defaultValues: {
       clientRecordId: defaultClientId ?? '',
-      clientName: '',
+      clientName: defaultClient?.name ?? '',
       hasPv: true,
       hasBess: false,
       hasWind: false,
