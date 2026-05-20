@@ -1,40 +1,61 @@
 'use client'
 // components/marketplace/job-card-deliverables.tsx
 
-import { useState, useTransition } from 'react'
+import { useState, useRef, useTransition } from 'react'
 import { addDeliverable } from '@/server/actions/marketplace'
-import { ExternalLink, Upload, Loader2 } from 'lucide-react'
+import { uploadFile } from '@/lib/upload-file'
+import { ExternalLink, Upload, Loader2, FileText, X } from 'lucide-react'
 
 type Deliverable = { id: string; name: string; url: string; version: number; createdAt: string }
 type Props = { jobCardId: string; deliverables: Deliverable[]; canUpload: boolean }
 
 export function JobCardDeliverables({ jobCardId, deliverables, canUpload }: Props) {
-  const [name, setName] = useState('')
-  const [url, setUrl] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [localDeliverables, setLocalDeliverables] = useState(deliverables)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  function handleUpload() {
+  async function handleUpload() {
+    if (!selectedFile) return
     setError(null)
-    if (!name.trim() || !url.trim()) { setError('Name and URL are required.'); return }
-    startTransition(async () => {
-      try {
-        await addDeliverable({ jobCardId, name, url })
-        setLocalDeliverables((prev) => [
-          ...prev,
-          { id: Date.now().toString(), name, url, version: prev.length + 1, createdAt: new Date().toISOString() },
-        ])
-        setName('')
-        setUrl('')
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Upload failed.')
-      }
-    })
+    setUploading(true)
+
+    try {
+      const url = await uploadFile(selectedFile, 'job_deliverable')
+
+      startTransition(async () => {
+        try {
+          await addDeliverable({ jobCardId, name: selectedFile.name, url })
+          setLocalDeliverables((prev) => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              name: selectedFile.name,
+              url,
+              version: prev.length + 1,
+              createdAt: new Date().toISOString(),
+            },
+          ])
+          setSelectedFile(null)
+          if (inputRef.current) inputRef.current.value = ''
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'Failed to save deliverable.')
+        }
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed. Please try again.')
+    } finally {
+      setUploading(false)
+    }
   }
+
+  const isLoading = uploading || isPending
 
   return (
     <div className="space-y-3">
+      {/* Existing deliverables */}
       {localDeliverables.map((d) => (
         <a
           key={d.id}
@@ -44,37 +65,69 @@ export function JobCardDeliverables({ jobCardId, deliverables, canUpload }: Prop
           className="flex items-center gap-2 text-sm text-accent-600 hover:underline"
         >
           <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
-          {d.name} <span className="text-xs text-ink-400">v{d.version}</span>
+          {d.name}
+          <span className="text-xs text-ink-400">v{d.version}</span>
         </a>
       ))}
+
       {localDeliverables.length === 0 && (
         <p className="text-xs text-ink-400">No deliverables uploaded yet.</p>
       )}
 
+      {/* Upload area */}
       {canUpload && (
         <div className="space-y-2 pt-2 border-t border-ink-100">
-          <p className="text-xs font-medium text-ink-700">Add deliverable</p>
+          <p className="text-xs font-medium text-ink-700">Upload deliverable</p>
+
           <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Document name"
-            className="w-full h-8 rounded-md border border-ink-200 px-3 text-sm placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-accent-500/20"
+            ref={inputRef}
+            type="file"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) { setSelectedFile(f); setError(null) }
+            }}
           />
-          <input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="File URL"
-            className="w-full h-8 rounded-md border border-ink-200 px-3 text-sm placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-accent-500/20"
-          />
+
+          {!selectedFile ? (
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="flex items-center gap-2 h-9 w-full rounded-md border-2 border-dashed border-ink-300 bg-white text-xs font-medium text-ink-600 hover:border-ink-400 hover:bg-ink-50 transition-colors justify-center"
+            >
+              <Upload className="h-3.5 w-3.5" strokeWidth={1.5} />
+              Click to select file
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 rounded-md border border-ink-200 bg-white px-3 py-2">
+              <FileText className="h-4 w-4 text-ink-400 flex-shrink-0" strokeWidth={1.5} />
+              <span className="text-xs text-ink-700 flex-1 truncate">{selectedFile.name}</span>
+              <button
+                type="button"
+                onClick={() => { setSelectedFile(null); if (inputRef.current) inputRef.current.value = '' }}
+                className="text-ink-400 hover:text-ink-700 flex-shrink-0"
+                aria-label="Remove file"
+              >
+                <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+              </button>
+            </div>
+          )}
+
           {error && <p className="text-xs text-danger-600">{error}</p>}
-          <button
-            onClick={handleUpload}
-            disabled={isPending}
-            className="flex items-center gap-1.5 h-7 px-3 rounded-md border border-ink-200 text-ink-600 text-xs hover:bg-ink-50 transition-colors disabled:opacity-50"
-          >
-            {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" strokeWidth={1.5} />}
-            Add file
-          </button>
+
+          {selectedFile && (
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-1.5 h-8 w-full rounded-md bg-ink-900 text-white text-xs font-medium hover:bg-ink-800 transition-colors disabled:opacity-50"
+            >
+              {isLoading
+                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Uploading…</>
+                : <><Upload className="h-3.5 w-3.5" strokeWidth={1.5} />Upload deliverable</>
+              }
+            </button>
+          )}
         </div>
       )}
     </div>
