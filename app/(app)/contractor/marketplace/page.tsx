@@ -32,10 +32,10 @@ export default async function HardwareMarketplacePage({ searchParams }: Props) {
             key={cat.value}
             href={cat.value ? `/contractor/marketplace?category=${cat.value}` : '/contractor/marketplace'}
             className={cn(
-              'h-7 px-3 rounded-full text-xs font-medium transition-colors border',
+              'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
               (category ?? '') === cat.value
-                ? 'bg-ink-900 text-white border-ink-900'
-                : 'bg-white text-ink-600 border-ink-200 hover:border-ink-400'
+                ? 'bg-ink-900 text-white'
+                : 'border border-ink-200 text-ink-600 hover:bg-ink-50'
             )}
           >
             {cat.label}
