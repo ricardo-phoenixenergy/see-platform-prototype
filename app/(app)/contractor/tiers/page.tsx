@@ -23,10 +23,9 @@ const TIER_BENEFITS: Record<Tier, Benefit[]> = {
   BRONZE: [
     { text: '2% discount on all marketplace purchases' },
     { text: '10% commission on O&M license sales' },
-    { text: 'Project Funding Access — visibility to lenders and funding partners in the SEE network', highlight: true },
-    { text: 'Service Centre Access — post RFQs and hire from verified service providers', highlight: true },
-    { text: 'SEE Token rewards — earn on every verified milestone, redeemable against hardware and service purchases', highlight: true },
-    { text: 'SEE.AI Assistant — project guidance, document analysis, and milestone support' },
+    { text: 'Project Funding Access — visibility to lenders and funding partners in the SEE network' },
+    { text: 'Service Centre Access — post RFQs and hire from verified service providers' },
+    { text: 'SEE Token rewards — earn on every verified milestone, redeemable against hardware and service purchases' },
     { text: 'Hardware Marketplace — source panels, inverters, batteries, and accessories' },
   ],
   SILVER: [
