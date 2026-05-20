@@ -26,7 +26,6 @@ export function HardwareProductCard({
   discountPercent = 0,
 }: Props) {
   const addItem = useCartStore((s) => s.addItem)
-  const removeItem = useCartStore((s) => s.removeItem)
   const updateQty = useCartStore((s) => s.updateQty)
   const items = useCartStore((s) => s.items)
   const [added, setAdded] = useState(false)
