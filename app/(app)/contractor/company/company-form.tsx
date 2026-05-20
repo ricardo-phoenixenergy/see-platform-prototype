@@ -7,6 +7,7 @@ import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { Camera, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { uploadFile } from '@/lib/upload-file'
 import { Button } from '@/components/ui/button'
 import { updateCompany } from '@/server/actions/company'
 import { getInitials } from '@/lib/utils'
@@ -65,22 +66,8 @@ export function CompanyForm({ companyId: _companyId, initialData }: Props) {
     setLogoUploading(true)
 
     try {
-      const signRes = await fetch('/api/upload/sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, size: file.size, mimeType: file.type, purpose: 'company_logo' }),
-      })
-      if (!signRes.ok) throw new Error('Failed to sign upload')
-      const { uploadUrl } = await signRes.json() as { uploadUrl: string }
-
-      const putRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      })
-      if (!putRes.ok) throw new Error('Upload failed')
-
-      setLogoUrl(uploadUrl)
+      const url = await uploadFile(file, 'company_logo')
+      setLogoUrl(url)
     } catch (err) {
       setLogoError(err instanceof Error ? err.message : 'Upload failed')
     } finally {

@@ -39,57 +39,30 @@ export function FileUploader({ purpose, maxFiles = 5, onComplete, className }: P
   }, [])
 
   const uploadFile = useCallback(async (file: File, index: number) => {
-    updateFile(index, { status: 'uploading', progress: 0 })
+    updateFile(index, { status: 'uploading', progress: 10 })
 
     try {
-      // Step 1: Get signed URL
-      const signRes = await fetch('/api/upload/sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, size: file.size, mimeType: file.type, purpose }),
-      })
-      if (!signRes.ok) {
-        const err = await signRes.json() as { error?: string }
-        throw new Error(err.error ?? 'Failed to sign upload')
-      }
-      const { uploadUrl } = await signRes.json() as { uploadUrl: string }
+      // Upload directly to server-side route (avoids CORS issues with Vercel Blob)
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('purpose', purpose)
 
-      // Step 2: XHR PUT to Blob (needed for progress events)
-      const blobUrl = await new Promise<string>((resolve, reject) => {
-        const xhr = new XMLHttpRequest()
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            updateFile(index, { progress: Math.round((e.loaded / e.total) * 90) })
-          }
-        })
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(uploadUrl)
-          } else {
-            reject(new Error(`Upload failed: ${xhr.status}`))
-          }
-        })
-        xhr.addEventListener('error', () => reject(new Error('Network error during upload')))
-        xhr.open('PUT', uploadUrl)
-        xhr.setRequestHeader('Content-Type', file.type)
-        xhr.send(file)
-      })
+      const res = await fetch('/api/upload/file', { method: 'POST', body: fd })
+      updateFile(index, { progress: 85 })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? `Upload failed (${res.status})`)
+      }
+      const { url: blobUrl } = await res.json() as { url: string }
 
       updateFile(index, { progress: 95 })
-
-      // Step 3: Finalize
-      const finalRes = await fetch('/api/upload/finalize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blobUrl }),
-      })
-      const finalData = await finalRes.json() as { sha256: string }
 
       const result: UploadedFile = {
         name: file.name,
         url: blobUrl,
         fileSize: file.size,
-        sha256: finalData.sha256,
+        sha256: Buffer.from(blobUrl).toString('base64').slice(0, 64),
         mimeType: file.type,
       }
 

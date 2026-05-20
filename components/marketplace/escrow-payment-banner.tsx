@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { AlertCircle, Copy, Check, Upload, Loader2, FileText, X } from 'lucide-react'
+import { uploadFile } from '@/lib/upload-file'
 
 type BankAccount = {
   accountName: string
@@ -49,32 +50,11 @@ export function EscrowPaymentBanner({
     setUploadError('')
 
     try {
-      // Step 1: Sign upload
-      const signRes = await fetch('/api/upload/sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: selectedFile.name,
-          size: selectedFile.size,
-          mimeType: selectedFile.type,
-          purpose: 'proof_of_payment',
-        }),
-      })
-      if (!signRes.ok) throw new Error('Failed to prepare upload. Please try again.')
-      const { uploadUrl } = await signRes.json() as { uploadUrl: string }
+      const url = await uploadFile(selectedFile, 'proof_of_payment')
 
-      // Step 2: Upload file
-      const putRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': selectedFile.type },
-        body: selectedFile,
-      })
-      if (!putRes.ok) throw new Error('File upload failed. Please try again.')
-
-      // Step 3: Save proof via server action
       const fd = new FormData()
       fd.append('jobCardId', jobCardId)
-      fd.append('proofUrl', uploadUrl)
+      fd.append('proofUrl', url)
       await uploadAction(fd)
 
       setUploaded(true)
