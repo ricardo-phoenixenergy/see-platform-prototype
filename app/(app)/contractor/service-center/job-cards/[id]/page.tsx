@@ -64,7 +64,10 @@ export default async function ContractorJobCardDetailPage({ params }: Props) {
           </p>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="text-sm font-semibold text-ink-900">{fmt(jobCard.amountCents)}</p>
+          <p className="text-sm font-semibold text-ink-900">
+            {fmt(jobCard.amountCents)}
+            <span className="text-[10px] font-normal text-ink-400 ml-1">excl. VAT</span>
+          </p>
           <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-sm', STATUS_CLASS[jobCard.status] ?? 'bg-ink-100 text-ink-600')}>
             {STATUS_LABEL[jobCard.status] ?? jobCard.status}
           </span>

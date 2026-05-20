@@ -32,7 +32,12 @@ export default async function JobCardDetailPage({ params }: Props) {
 
   const isActive = jobCard.status === 'ACTIVE' && jobCard.escrowStatus === 'LOCKED'
   const userId = session.user.id ?? ''
-  const netPayout = jobCard.amountCents - jobCard.seePlatformFeeCents
+  // Always derive platform fee — old job cards may have seePlatformFeeCents = 0
+  const platformFeeCents = jobCard.seePlatformFeeCents > 0
+    ? jobCard.seePlatformFeeCents
+    : Math.round(jobCard.amountCents * 0.05)
+  const netPayout = jobCard.amountCents - platformFeeCents
+  const feePercent = Math.round((platformFeeCents / jobCard.amountCents) * 100)
   const paymentStatus = escrowPayment?.status ?? null
 
   return (
@@ -53,16 +58,15 @@ export default async function JobCardDetailPage({ params }: Props) {
         <div className="text-right flex-shrink-0">
           <p className="text-sm font-semibold text-ink-900">
             R {(jobCard.amountCents / 100).toLocaleString('en-ZA')}
+            <span className="text-[10px] font-normal text-ink-400 ml-1">excl. VAT</span>
           </p>
-          {jobCard.seePlatformFeeCents > 0 && (
-            <p className="text-[10px] text-ink-400 mt-0.5">
-              You receive{' '}
-              <span className="font-semibold text-ink-700">
-                R {((jobCard.amountCents - jobCard.seePlatformFeeCents) / 100).toLocaleString('en-ZA')}
-              </span>{' '}
-              after {((jobCard.seePlatformFeeCents / jobCard.amountCents) * 100).toFixed(0)}% platform fee
-            </p>
-          )}
+          <p className="text-[10px] text-ink-400 mt-0.5">
+            You receive{' '}
+            <span className="font-semibold text-ink-700">
+              R {(netPayout / 100).toLocaleString('en-ZA')}
+            </span>{' '}
+            after {feePercent}% platform fee
+          </p>
           <span className={cn(
             'text-[10px] font-semibold px-1.5 py-0.5 rounded-sm',
             STATUS_CLASS[jobCard.status] ?? 'bg-ink-100 text-ink-600'

@@ -109,8 +109,9 @@ export function EscrowPaymentBanner({
         <div>
           <p className="text-sm font-semibold text-ink-900">Escrow payment required to activate this job</p>
           <p className="text-xs text-ink-500 mt-0.5">
-            Transfer {fmt(amountCents)} (incl. VAT) to the account below using the reference provided.
-            Funds will be held in escrow until you approve the deliverables.
+            Transfer <span className="font-medium text-ink-700">{fmt(amountCents)}</span> to the account
+            below using the reference provided. Funds will be held in escrow until you approve the deliverables.
+            <span className="block mt-0.5 text-ink-400">All amounts excl. VAT — VAT invoice issued separately.</span>
           </p>
         </div>
       </div>
