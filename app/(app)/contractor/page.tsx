@@ -64,8 +64,12 @@ export default async function ContractorDashboardPage({ searchParams }: Props) {
           <TierProgressCard
             tier={tierProgress.tier}
             compliantProjectCount={tierProgress.compliantProjectCount}
+            totalInstalledKw={tierProgress.totalInstalledKw}
             nextTierAt={tierProgress.nextTierAt}
+            nextTierKw={tierProgress.nextTierKw}
             progressPercent={tierProgress.progressPercent}
+            projectProgress={tierProgress.projectProgress}
+            kwProgress={tierProgress.kwProgress}
           />
         </div>
 

@@ -1,20 +1,18 @@
 // components/tier/cashback-rates.tsx
-// Tier → cashback rate table. Used in wallet and dashboard.
+// Tier rate table — marketplace discount + license commission.
 
 import { cn } from '@/lib/utils'
-import { TIER_CASHBACK_RATES, TIER_ORDER } from '@/lib/tier/rules'
+import { TIER_DISCOUNT_RATES, TIER_COMMISSION_RATES, TIER_ORDER } from '@/lib/tier/rules'
 import type { Tier } from '@/lib/tier/rules'
 
 const TIER_COLOURS: Record<Tier, string> = {
-  BRONZE: '#CD7F32',
-  SILVER: '#9EA3AD',
-  GOLD: '#F59E0B',
+  BRONZE:   '#CD7F32',
+  SILVER:   '#9EA3AD',
+  GOLD:     '#F59E0B',
   PLATINUM: '#7C3AED',
 }
 
-type Props = {
-  currentTier: Tier
-}
+type Props = { currentTier: Tier }
 
 export function CashbackRates({ currentTier }: Props) {
   return (
@@ -23,17 +21,15 @@ export function CashbackRates({ currentTier }: Props) {
         <thead>
           <tr className="bg-ink-25 border-b border-ink-100">
             <th className="px-3 py-2 text-left text-xs font-semibold text-ink-500">Tier</th>
-            <th className="px-3 py-2 text-right text-xs font-semibold text-ink-500">Cashback on purchases</th>
+            <th className="px-3 py-2 text-right text-xs font-semibold text-ink-500">Marketplace discount</th>
+            <th className="px-3 py-2 text-right text-xs font-semibold text-ink-500">License commission</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-ink-50">
           {TIER_ORDER.map((tier) => {
             const isActive = tier === currentTier
             return (
-              <tr
-                key={tier}
-                className={cn(isActive ? 'bg-white' : 'bg-ink-25/50 text-ink-400')}
-              >
+              <tr key={tier} className={cn(isActive ? 'bg-white' : 'bg-ink-25/50 text-ink-400')}>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span
@@ -48,7 +44,12 @@ export function CashbackRates({ currentTier }: Props) {
                 </td>
                 <td className="px-3 py-2 text-right">
                   <span className={cn('text-xs font-semibold tabular-nums', isActive ? 'text-ink-900' : 'text-ink-300')}>
-                    {TIER_CASHBACK_RATES[tier]}%
+                    {TIER_DISCOUNT_RATES[tier]}%
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <span className={cn('text-xs font-semibold tabular-nums', isActive ? 'text-ink-900' : 'text-ink-300')}>
+                    {TIER_COMMISSION_RATES[tier]}%
                   </span>
                 </td>
               </tr>

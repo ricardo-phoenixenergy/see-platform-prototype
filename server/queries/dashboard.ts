@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { getCountToNextTier, type Tier } from '@/lib/tier/rules'
+import { getCountToNextTier, getTierForMetrics, TIER_THRESHOLDS, TIER_ORDER, type Tier } from '@/lib/tier/rules'
 
 export async function getTierInfo(companyId: string) {
   const [tier, wallet] = await Promise.all([
@@ -53,18 +53,45 @@ export async function getNewsItems() {
 }
 
 export async function getTierProgress(companyId: string) {
-  const tier = await db.tierStatus.findUnique({ where: { companyId } })
-  const currentTier = (tier?.tier ?? 'BRONZE') as Tier
-  const count = tier?.compliantProjectCount ?? 0
-  const countToNext = getCountToNextTier(currentTier, count)
+  const [tierRecord, kwAggregate] = await Promise.all([
+    db.tierStatus.findUnique({ where: { companyId } }),
+    db.project.aggregate({
+      where: { contractorCompanyId: companyId, deletedAt: null },
+      _sum: { systemSizeKw: true },
+    }),
+  ])
+
+  const projectCount = tierRecord?.compliantProjectCount ?? 0
+  const totalKw = kwAggregate._sum.systemSizeKw ?? 0
+
+  // Derive tier from dual thresholds (overrides the stored value for display)
+  const currentTier = getTierForMetrics(projectCount, totalKw)
+  const nextTierIdx = TIER_ORDER.indexOf(currentTier) + 1
+  const nextTier = nextTierIdx < TIER_ORDER.length ? TIER_ORDER[nextTierIdx] as Tier : null
+
+  const nextThresholds = nextTier ? TIER_THRESHOLDS[nextTier] : null
+  const countToNext = nextThresholds ? Math.max(0, nextThresholds.projects - projectCount) : null
+  const kwToNext = nextThresholds ? Math.max(0, nextThresholds.kw - totalKw) : null
+
+  // Progress is the lesser of the two ratios (bottleneck metric)
+  const projectProgress = nextThresholds
+    ? Math.min(100, Math.round((projectCount / nextThresholds.projects) * 100))
+    : 100
+  const kwProgress = nextThresholds && nextThresholds.kw > 0
+    ? Math.min(100, Math.round((totalKw / nextThresholds.kw) * 100))
+    : 100
+  const progressPercent = Math.min(projectProgress, kwProgress)
 
   return {
     tier: currentTier,
-    compliantProjectCount: count,
-    nextTierAt: countToNext !== null ? (count + countToNext) : null,
+    compliantProjectCount: projectCount,
+    totalInstalledKw: totalKw,
+    nextTierAt: nextThresholds?.projects ?? null,
+    nextTierKw: nextThresholds?.kw ?? null,
     countToNextTier: countToNext,
-    progressPercent: countToNext !== null
-      ? Math.min(100, Math.round((count / (count + countToNext)) * 100))
-      : 100,
+    kwToNextTier: kwToNext,
+    progressPercent,
+    projectProgress,
+    kwProgress,
   }
 }
