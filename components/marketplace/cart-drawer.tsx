@@ -27,6 +27,11 @@ function CartPanel({
     [total, discountPercent, tokenBalance]
   )
 
+  // Reconstruct original (pre-tier-discount) total for the breakdown
+  const originalTotalCents = discountPercent > 0
+    ? Math.round(total / (1 - discountPercent / 100))
+    : total
+  const tierSavingsCents = originalTotalCents - total
   const tokenDiscountCents = Math.round((tokensToburn / TOKENS_PER_RAND) * 100)
   const finalCents = Math.max(0, total - tokenDiscountCents)
 
@@ -185,19 +190,31 @@ function CartPanel({
               )}
             </div>
 
-            {/* Totals */}
-            <div className="space-y-1.5">
+            {/* Itemised totals */}
+            <div className="space-y-1.5 rounded-md bg-ink-25 border border-ink-100 px-3 py-3">
               <div className="flex items-center justify-between text-xs text-ink-500">
-                <span>Subtotal (tier discount applied)</span>
-                <span className="tabular-nums">R {fmt(total)}</span>
+                <span>Subtotal</span>
+                <span className="tabular-nums">R {fmt(originalTotalCents)}</span>
               </div>
+              {discountPercent > 0 && (
+                <div className="flex items-center justify-between text-xs text-success-600">
+                  <span>Tier discount ({discountPercent}%)</span>
+                  <span className="tabular-nums">−R {fmt(tierSavingsCents)}</span>
+                </div>
+              )}
               {tokensToburn > 0 && (
                 <div className="flex items-center justify-between text-xs text-success-600">
                   <span>Token discount ({tokensToburn.toLocaleString()} tokens)</span>
                   <span className="tabular-nums">−R {fmt(tokenDiscountCents)}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between pt-1 border-t border-ink-100">
+              {(discountPercent > 0 || tokensToburn > 0) && (
+                <div className="flex items-center justify-between text-xs text-success-700 font-medium pt-0.5">
+                  <span>Total savings</span>
+                  <span className="tabular-nums">−R {fmt(tierSavingsCents + tokenDiscountCents)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between pt-1.5 border-t border-ink-200">
                 <span className="text-sm font-semibold text-ink-900">Total due</span>
                 <span className="text-base font-semibold text-ink-900 tabular-nums">R {fmt(finalCents)}</span>
               </div>
