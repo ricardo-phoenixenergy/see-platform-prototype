@@ -97,7 +97,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
           icon={FolderOpen}
           title="No projects found"
           description="Try adjusting the filters, or create your first project."
-          action={{ label: 'New project', onClick: () => {} }}
+          action={{ label: 'New project', href: '/contractor/projects/new' }}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
