@@ -19,6 +19,7 @@ export async function getClientById(id: string, contractorCompanyId: string) {
       projects: {
         where: { deletedAt: null },
         include: {
+          clientCompany: { select: { name: true } },
           site: { select: { city: true, province: true } },
           milestones: { select: { status: true } },
         },
