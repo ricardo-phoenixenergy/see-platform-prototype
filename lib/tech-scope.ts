@@ -48,7 +48,10 @@ export function deriveTechnology(scope: TechScope): DerivedTechnology {
   if (primaryCount > 1) return 'HYBRID'
   if (scope.hasBess) return 'BESS'
   if (scope.hasWind) return 'WIND'
-  return 'SOLAR_PV' // hasPv true or nothing selected (fallback)
+  if (scope.hasPv) return 'SOLAR_PV'
+  // hasWheeling only — treat as HYBRID (wheeling always accompanies generation in practice)
+  if (scope.hasWheeling) return 'HYBRID'
+  throw new Error('TechScope must have at least one technology flag set')
 }
 
 export const DESIGN_OBJECTIVE_LABELS: Record<DesignObjective, string> = {

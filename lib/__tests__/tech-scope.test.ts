@@ -33,7 +33,11 @@ describe('deriveTechnology', () => {
     expect(deriveTechnology({ ...base, hasPv: true, hasWheeling: true })).toBe('SOLAR_PV')
   })
 
-  it('returns SOLAR_PV when nothing selected (fallback)', () => {
-    expect(deriveTechnology(base)).toBe('SOLAR_PV')
+  it('throws when no technology flags are set', () => {
+    expect(() => deriveTechnology(base)).toThrow('TechScope must have at least one technology flag set')
+  })
+
+  it('returns HYBRID for wheeling-only (no generation tech)', () => {
+    expect(deriveTechnology({ ...base, hasWheeling: true })).toBe('HYBRID')
   })
 })
