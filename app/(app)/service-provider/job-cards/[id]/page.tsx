@@ -7,6 +7,7 @@ import { JobCardChat } from '@/components/marketplace/job-card-chat'
 import { JobCardDeliverables } from '@/components/marketplace/job-card-deliverables'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { Clock, Lock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -27,10 +28,12 @@ export default async function JobCardDetailPage({ params }: Props) {
   const { id } = await params
   const data = await getJobCardDetail(id)
   if (!data) notFound()
-  const { escrowPayment: _ep, bankAccount: _ba, ...jobCard } = data
+  const { escrowPayment, bankAccount: _ba, ...jobCard } = data
 
-  const isActive = jobCard.status === 'ACTIVE'
+  const isActive = jobCard.status === 'ACTIVE' && jobCard.escrowStatus === 'LOCKED'
   const userId = session.user.id ?? ''
+  const netPayout = jobCard.amountCents - jobCard.seePlatformFeeCents
+  const paymentStatus = escrowPayment?.status ?? null
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -73,6 +76,80 @@ export default async function JobCardDetailPage({ params }: Props) {
         <p className="text-xs font-semibold text-ink-700">Scope of work</p>
         <p className="text-xs text-ink-600 whitespace-pre-line">{jobCard.scopeOfWork}</p>
       </div>
+
+      {/* ── ESCROW PAYMENT STATUS ── */}
+
+      {/* 1. Awaiting contractor to pay */}
+      {jobCard.escrowStatus === 'AWAITING_PAYMENT' && (paymentStatus === 'AWAITING_PROOF' || !paymentStatus) && (
+        <div className="rounded-md border border-ink-200 bg-ink-25 px-4 py-3 flex items-center gap-3">
+          <Clock className="h-4 w-4 text-ink-400 flex-shrink-0" strokeWidth={1.5} />
+          <div>
+            <p className="text-sm font-medium text-ink-900">Awaiting escrow payment from contractor</p>
+            <p className="text-xs text-ink-500 mt-0.5">
+              {jobCard.rfq.project.contractorCompany.name} needs to transfer {' '}
+              <span className="font-medium">R {(jobCard.amountCents / 100).toLocaleString('en-ZA')}</span> into escrow
+              before work can begin. You will be notified once confirmed.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 2. POP uploaded, waiting for admin confirmation */}
+      {jobCard.escrowStatus === 'AWAITING_PAYMENT' && (paymentStatus === 'AWAITING_RECONCILIATION' || paymentStatus === 'PROOF_UPLOADED') && (
+        <div className="rounded-md border border-ink-200 bg-ink-25 px-4 py-3 flex items-center gap-3">
+          <Loader2 className="h-4 w-4 text-ink-400 animate-spin flex-shrink-0" strokeWidth={1.5} />
+          <div>
+            <p className="text-sm font-medium text-ink-900">Proof of payment received — awaiting bank confirmation</p>
+            <p className="text-xs text-ink-500 mt-0.5">
+              The contractor has uploaded proof of payment. Our team is confirming receipt — typically within 1 business day.
+              You can begin preparing once confirmed.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Funds locked — work in progress */}
+      {jobCard.escrowStatus === 'LOCKED' && jobCard.status === 'ACTIVE' && (
+        <div className="rounded-md border border-success-500/20 bg-success-50/20 px-4 py-3 flex items-center gap-3">
+          <Lock className="h-4 w-4 text-success-600 flex-shrink-0" strokeWidth={1.5} />
+          <div>
+            <p className="text-sm font-medium text-ink-900">Payment confirmed — funds held in escrow</p>
+            <p className="text-xs text-ink-500 mt-0.5">
+              <span className="font-medium text-ink-700">R {(netPayout / 100).toLocaleString('en-ZA')}</span> will be
+              released to you once the contractor approves your deliverables.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Deliverables submitted, awaiting approval */}
+      {jobCard.status === 'PENDING_REVIEW' && (
+        <div className="rounded-md border border-warning-200 bg-warning-50/40 px-4 py-3 flex items-center gap-3">
+          <AlertCircle className="h-4 w-4 text-warning-600 flex-shrink-0" strokeWidth={1.5} />
+          <div>
+            <p className="text-sm font-medium text-ink-900">Deliverables submitted — awaiting contractor approval</p>
+            <p className="text-xs text-ink-500 mt-0.5">
+              Once {jobCard.rfq.project.contractorCompany.name} approves your deliverables, {' '}
+              <span className="font-medium text-ink-700">R {(netPayout / 100).toLocaleString('en-ZA')}</span> will be
+              released from escrow.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Payment released */}
+      {jobCard.escrowStatus === 'RELEASED' && (
+        <div className="rounded-md border border-success-500/20 bg-success-50/20 px-4 py-3 flex items-center gap-3">
+          <CheckCircle className="h-4 w-4 text-success-600 flex-shrink-0" strokeWidth={1.5} />
+          <div>
+            <p className="text-sm font-medium text-success-700">Payment released</p>
+            <p className="text-xs text-ink-500 mt-0.5">
+              <span className="font-medium text-ink-700">R {(netPayout / 100).toLocaleString('en-ZA')}</span> has been
+              released to your account after the SEE platform fee.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Deliverables */}
