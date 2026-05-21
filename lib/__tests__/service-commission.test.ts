@@ -24,61 +24,56 @@ describe('getSpCommissionPercent', () => {
 
 describe('calculateServiceCommission', () => {
   it('marks up SP amount by 10%', () => {
-    const result = calculateServiceCommission(10_000_00, 'GOLD', 4.8)
-    expect(result.markedUpAmountCents).toBe(11_000_00)
+    const result = calculateServiceCommission(1_000_000, 'GOLD', 4.8)
+    expect(result.markedUpAmountCents).toBe(1_100_000)
   })
 
   it('applies Gold 8% discount to marked-up price', () => {
     // markedUp = 1_100_000, 8% off = 1_012_000
-    const result = calculateServiceCommission(10_000_00, 'GOLD', 4.8)
+    const result = calculateServiceCommission(1_000_000, 'GOLD', 4.8)
     expect(result.contractorAmountCents).toBe(1_012_000)
   })
 
   it('applies 3% SP commission for high-rated SP', () => {
-    // SP gets 10_000_00 * 0.97 = 970_000
-    const result = calculateServiceCommission(10_000_00, 'GOLD', 4.8)
+    // SP gets 1_000_000 * 0.97 = 970_000
+    const result = calculateServiceCommission(1_000_000, 'GOLD', 4.8)
     expect(result.spPayoutCents).toBe(970_000)
   })
 
   it('SEE earns the spread (contractorAmount - spPayout)', () => {
-    const result = calculateServiceCommission(10_000_00, 'GOLD', 4.8)
+    const result = calculateServiceCommission(1_000_000, 'GOLD', 4.8)
     expect(result.seePlatformFeeCents).toBe(result.contractorAmountCents - result.spPayoutCents)
   })
 
   it('applies Platinum 10% discount', () => {
-    const result = calculateServiceCommission(10_000_00, 'PLATINUM', 5.0)
-    // markedUp = 1_100_000, 10% off = 990_000
+    // markedUp = 1_100_000, 10% off = 990_000; SP payout = 970_000 (4.5★ = 3%) → SEE earns 20_000
+    const result = calculateServiceCommission(1_000_000, 'PLATINUM', 5.0)
     expect(result.contractorAmountCents).toBe(990_000)
+    expect(result.seePlatformFeeCents).toBeGreaterThanOrEqual(0)
   })
 
   it('applies Bronze 2% discount', () => {
-    const result = calculateServiceCommission(10_000_00, 'BRONZE', 3.0)
     // markedUp = 1_100_000, 2% off = 1_078_000
+    const result = calculateServiceCommission(1_000_000, 'BRONZE', 3.0)
     expect(result.contractorAmountCents).toBe(1_078_000)
   })
 
   it('applies Silver 5% discount', () => {
-    const result = calculateServiceCommission(10_000_00, 'SILVER', 4.5)
     // markedUp = 1_100_000, 5% off = 1_045_000
+    const result = calculateServiceCommission(1_000_000, 'SILVER', 4.5)
     expect(result.contractorAmountCents).toBe(1_045_000)
   })
 
   it('applies 5% SP commission for low-rated SP', () => {
-    // SP gets 10_000_00 * 0.95 = 950_000
-    const result = calculateServiceCommission(10_000_00, 'GOLD', 4.0)
+    // SP gets 1_000_000 * 0.95 = 950_000
+    const result = calculateServiceCommission(1_000_000, 'GOLD', 4.0)
     expect(result.spPayoutCents).toBe(950_000)
   })
 
-  it('returns all breakdown fields', () => {
-    const result = calculateServiceCommission(10_000_00, 'GOLD', 4.8)
-    expect(result).toMatchObject({
-      spAmountCents: 10_000_00,
-      markedUpAmountCents: expect.any(Number),
-      contractorAmountCents: expect.any(Number),
-      spPayoutCents: expect.any(Number),
-      seePlatformFeeCents: expect.any(Number),
-      tierDiscountPercent: expect.any(Number),
-      spCommissionPercent: expect.any(Number),
-    })
+  it('passes through spAmountCents and tier/commission percents', () => {
+    const result = calculateServiceCommission(1_000_000, 'GOLD', 4.8)
+    expect(result.spAmountCents).toBe(1_000_000)
+    expect(result.tierDiscountPercent).toBe(8)
+    expect(result.spCommissionPercent).toBe(3)
   })
 })
