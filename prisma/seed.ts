@@ -437,16 +437,19 @@ async function main() {
 
   await db.milestoneTemplate.upsert({
     where: { id: 'template-solar-ci-outright' },
-    update: {},
+    update: {
+      dealStructure: ['OUTRIGHT', 'LEASE', 'WHEELING_AGREEMENT'],
+      name: 'Solar C&I <1MW Outright / Lease / Wheeling',
+    },
     create: {
       id: 'template-solar-ci-outright',
-      name: 'Solar C&I <1MW Outright',
+      name: 'Solar C&I <1MW Outright / Lease / Wheeling',
       version: 1,
       isActive: true,
       technology: 'SOLAR_PV',
       minSizeKw: 50,
       maxSizeKw: 1000,
-      dealStructure: ['OUTRIGHT', 'LEASE'],
+      dealStructure: ['OUTRIGHT', 'LEASE', 'WHEELING_AGREEMENT'],
       items: {
         create: [
           { order: 1, phase: 'DEVELOPMENT', name: 'Site Assessment', description: 'Site assessment report', isHardGate: true, estimatedDays: 10, requiredArtefacts: [{ name: 'Site Assessment', allowedTypes: ['application/pdf'] }] },
