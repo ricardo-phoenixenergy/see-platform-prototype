@@ -290,28 +290,10 @@ export default function LandingPage() {
           <p className="text-xs font-semibold tracking-widest uppercase text-ink-400 mb-3">SEE Token Rewards</p>
           <h2 className="text-3xl font-semibold tracking-tight text-ink-900">Get rewarded for quality projects.</h2>
           <p className="mt-3 text-base text-ink-500 max-w-2xl mx-auto leading-relaxed">
-            Every verified milestone earns SEE Tokens. Your tier multiplies every token earned, and
-            tokens redeem against hardware and services — up to 10% off every transaction.
+            Complete milestones and deliver projects to earn SEE Tokens. Tokens are redeemable
+            against hardware and services — and your tier multiplies every token you earn.
           </p>
         </div>
-
-        {/* Token earn mechanics */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-4">
-          {([
-            { tokens: '100 tokens', event: 'per AI-assisted milestone review', detail: 'Platform pre-check pass' },
-            { tokens: '300 tokens', event: 'per expert verification sign-off', detail: 'Admin approval milestone' },
-            { tokens: '1,000 tokens', event: 'per operational project', detail: 'Full project lifecycle complete' },
-          ] as const).map(item => (
-            <div key={item.event} className="rounded-xl border border-ink-200 bg-white p-6">
-              <p className="text-xl font-semibold text-ink-900 mb-1">{item.tokens}</p>
-              <p className="text-sm text-ink-700">{item.event}</p>
-              <p className="text-xs text-ink-400 mt-0.5">{item.detail}</p>
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-ink-400 text-center mb-16">
-          10 tokens = R1 in spending power &nbsp;·&nbsp; multiplied by your tier &nbsp;·&nbsp; capped at 10% per transaction
-        </p>
 
         {/* Tier cards */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-4">
