@@ -219,7 +219,14 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])}>
+      <form
+          onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !isLastStep && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+              e.preventDefault()
+            }
+          }}
+        >
 
         {/* ── Step 0: Client & Site ── */}
         {step === 0 && (

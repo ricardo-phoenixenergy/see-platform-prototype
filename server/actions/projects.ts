@@ -357,3 +357,125 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
     return { ok: false, error: message }
   }
 }
+
+// ── Update project ─────────────────────────────────────────────────────────────
+
+const UpdateProjectSchema = z.object({
+  name: z.string().min(3, 'Project name must be at least 3 characters'),
+  addressLine: z.string().min(2),
+  city: z.string().min(2),
+  province: z.string().min(2),
+  clientNeeds: z.string().optional(),
+  supplier: z.enum(['ESKOM', 'MUNICIPAL']),
+  municipalityName: z.string().optional(),
+  tariffName: z.string().optional(),
+  isTOU: z.boolean(),
+  nmdKva: z.coerce.number().positive('NMD is required'),
+  supplyVoltage: z.enum(['LV', 'MV', 'HV']),
+  transformerCapacityKva: optNum,
+  accountNumber: z.string().optional(),
+  hasPv: z.boolean(),
+  hasBess: z.boolean(),
+  hasWheeling: z.boolean(),
+  inverterTopology: z.enum(['HYBRID', 'SEPARATE_GTI_PCS']).optional(),
+  pvInverterKw: optNum,
+  pvArrayKwp: optNum,
+  bessInverterKw: optNum,
+  pvMountingType: z.array(z.enum(['ROOFTOP', 'GROUND_MOUNT', 'CARPORT'])).optional(),
+  bessCapacityKwh: optNum,
+  bessChemistry: z.enum(['LFP', 'NMC', 'VRLA']).optional(),
+  wheelingAgreementType: z.enum(['VIRTUAL_NET_METERING', 'OPEN_ACCESS', 'BILATERAL']).optional(),
+  wheelingCapacityKw: optNum,
+  wheelingDistanceKm: optNum,
+  wheelingTradingPartner: z.string().optional(),
+  designObjectives: z.array(z.enum(['SELF_CONSUMPTION', 'PEAK_SHAVING', 'BACKUP', 'GRID_EXPORT', 'ARBITRAGE'])),
+  exportToGrid: z.boolean(),
+  dealStructure: z.enum(['OUTRIGHT', 'PPA', 'LEASE', 'WHEELING_AGREEMENT']),
+})
+
+export async function updateProject(
+  projectId: string,
+  input: z.infer<typeof UpdateProjectSchema>,
+): Promise<ActionResult> {
+  const session = await auth()
+  if (!session) return { ok: false, error: 'Not authenticated' }
+
+  const parsed = UpdateProjectSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
+
+  const data = parsed.data
+
+  const existing = await db.project.findFirst({
+    where: { id: projectId, contractorCompanyId: session.user.companyId, deletedAt: null },
+  })
+  if (!existing) return { ok: false, error: 'Project not found' }
+
+  const technology = deriveTechnology({ hasPv: data.hasPv, hasBess: data.hasBess, hasWheeling: data.hasWheeling })
+  const systemSizeKw = data.hasPv ? (data.pvInverterKw ?? 0) : (data.bessInverterKw ?? 0)
+
+  const techScope = {
+    hasPv: data.hasPv,
+    hasBess: data.hasBess,
+    hasWheeling: data.hasWheeling,
+    ...(data.hasPv || data.hasBess ? { inverterTopology: data.inverterTopology } : {}),
+    ...(data.hasPv ? {
+      pvInverterKw: data.pvInverterKw,
+      ...(data.pvArrayKwp ? { pvArrayKwp: data.pvArrayKwp } : {}),
+      pvMountingType: data.pvMountingType?.length ? data.pvMountingType : undefined,
+    } : {}),
+    ...(data.hasBess && (!data.hasPv || data.inverterTopology === 'SEPARATE_GTI_PCS') ? {
+      bessInverterKw: data.bessInverterKw,
+    } : {}),
+    ...(data.hasBess ? {
+      bessCapacityKwh: data.bessCapacityKwh,
+      bessChemistry: data.bessChemistry,
+    } : {}),
+    ...(data.hasWheeling ? {
+      wheelingAgreementType: data.wheelingAgreementType,
+      wheelingCapacityKw: data.wheelingCapacityKw,
+      wheelingDistanceKm: data.wheelingDistanceKm,
+      wheelingTradingPartner: data.wheelingTradingPartner || undefined,
+    } : {}),
+    designObjectives: data.designObjectives,
+    exportToGrid: data.exportToGrid,
+  }
+
+  const siteInfo = {
+    supplier: data.supplier,
+    ...(data.supplier === 'MUNICIPAL' ? { municipalityName: data.municipalityName } : {}),
+    ...(data.tariffName ? { tariffName: data.tariffName } : {}),
+    isTOU: data.isTOU,
+    nmdKva: data.nmdKva,
+    supplyVoltage: data.supplyVoltage,
+    ...(data.transformerCapacityKva ? { transformerCapacityKva: data.transformerCapacityKva } : {}),
+    ...(data.accountNumber ? { accountNumber: data.accountNumber } : {}),
+  }
+
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.site.update({
+        where: { id: existing.siteId },
+        data: { addressLine: data.addressLine, city: data.city, province: data.province },
+      })
+      await tx.project.update({
+        where: { id: projectId },
+        data: {
+          name: data.name,
+          technology,
+          systemSizeKw,
+          storageSizeKwh: data.hasBess && data.bessCapacityKwh ? data.bessCapacityKwh : null,
+          dealStructure: data.dealStructure,
+          techScope,
+          siteInfo,
+          clientNeeds: data.clientNeeds || null,
+        },
+      })
+    })
+
+    revalidatePath(`/contractor/projects/${projectId}`)
+    return { ok: true, projectId }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to update project'
+    return { ok: false, error: message }
+  }
+}

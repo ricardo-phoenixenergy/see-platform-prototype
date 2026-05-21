@@ -3,6 +3,8 @@ import { redirect, notFound } from 'next/navigation'
 import { getProject } from '@/server/queries/projects'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDate } from '@/lib/utils'
+import Link from 'next/link'
+import { Pencil } from 'lucide-react'
 import type { TechScope } from '@/lib/tech-scope'
 import {
   DESIGN_OBJECTIVE_LABELS, BESS_CHEMISTRY_LABELS,
@@ -105,6 +107,17 @@ export default async function OverviewPage({ params }: Props) {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 overflow-y-auto h-full">
+
+      {/* Edit action */}
+      <div className="flex justify-end">
+        <Link
+          href={`/contractor/projects/${id}/edit`}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-ink-200 px-3 text-xs font-medium text-ink-600 hover:bg-ink-50 transition-colors"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Edit project
+        </Link>
+      </div>
 
       {/* Main info */}
       <Card>
