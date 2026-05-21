@@ -38,8 +38,8 @@ The build plan lives in `docs/plan/`. **Read these files at the start of every n
 ## Current milestone
 
 > **Currently working on:** Post-prototype polish — DEMO READY
-> **Last completed:** M10 — SEE.AI Assistant + Polish Pass complete (streaming Claude API chat, 6 tool calls, floating widget, Demo Mode toggle, loading skeletons, empty states).
-> **Status: DEMO READY — all 10 milestones complete**
+> **Last completed:** Token economy removal + service commission model — SEE token economy fully stripped; dual-sided commission model (10% markup → tier discount for contractor; 3–5% SP platform fee based on rating) wired from `acceptBid` through to contractor RFQ + SP opportunity views.
+> **Status: DEMO READY — all 10 milestones complete + commission model shipped**
 
 *Keep this updated as you progress. This single line orients every new session.*
 
