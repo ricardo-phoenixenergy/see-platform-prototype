@@ -6,6 +6,8 @@ import { db } from '@/lib/db'
 import { z } from 'zod'
 import type { ServiceCategory } from '@/lib/generated/prisma/client'
 import { createServiceEscrowInvoice } from '@/lib/payments/invoice'
+import { calculateServiceCommission } from '@/lib/service-commission'
+import { getTierForMetrics } from '@/lib/tier/rules'
 
 // ─── RFQ ─────────────────────────────────────────────────────────────────────
 
@@ -94,9 +96,31 @@ export async function acceptBid(formData: FormData) {
   if (!bid) throw new Error('Bid not found')
   if (bid.rfq.status === 'AWARDED') throw new Error('RFQ already awarded')
 
-  const platformFeeCents = Math.round(bid.amountCents * 0.05)
+  const contractorCompanyId = bid.rfq.project.contractorCompanyId
 
-  // Create job card first
+  // ── Resolve contractor tier ──────────────────────────────────────────────
+  const [tierRecord, kwAggregate] = await Promise.all([
+    db.tierStatus.findUnique({ where: { companyId: contractorCompanyId } }),
+    db.project.aggregate({
+      where: { contractorCompanyId, deletedAt: null },
+      _sum: { systemSizeKw: true },
+    }),
+  ])
+  const projectCount = tierRecord?.compliantProjectCount ?? 0
+  const totalKw = kwAggregate._sum.systemSizeKw ?? 0
+  const contractorTier = getTierForMetrics(projectCount, totalKw)
+
+  // ── Resolve SP rating ────────────────────────────────────────────────────
+  const spProfile = await db.serviceProviderProfile.findUnique({
+    where: { companyId: bid.providerCompanyId },
+    select: { rating: true },
+  })
+  const spRating = spProfile?.rating ?? null
+
+  // ── Compute commission breakdown ─────────────────────────────────────────
+  const commission = calculateServiceCommission(bid.amountCents, contractorTier, spRating)
+
+  // ── Write DB ─────────────────────────────────────────────────────────────
   await db.bid.update({ where: { id: bidId }, data: { status: 'ACCEPTED' } })
   await db.bid.updateMany({ where: { rfqId: bid.rfqId, id: { not: bidId } }, data: { status: 'REJECTED' } })
   await db.rfq.update({ where: { id: bid.rfqId }, data: { status: 'AWARDED' } })
@@ -105,20 +129,25 @@ export async function acceptBid(formData: FormData) {
       rfqId: bid.rfqId,
       providerCompanyId: bid.providerCompanyId,
       scopeOfWork: bid.rfq.scopeOfWork,
-      amountCents: bid.amountCents,
-      seePlatformFeeCents: platformFeeCents,
+      // amountCents = what contractor actually pays (marked-up, tier-discounted)
+      amountCents: commission.contractorAmountCents,
+      spAmountCents: commission.spAmountCents,
+      markedUpAmountCents: commission.markedUpAmountCents,
+      spPayoutCents: commission.spPayoutCents,
+      seePlatformFeeCents: commission.seePlatformFeeCents,
+      tierDiscountPercent: commission.tierDiscountPercent,
+      spCommissionPercent: commission.spCommissionPercent,
       escrowStatus: 'AWAITING_PAYMENT',
       status: 'ACTIVE',
     },
   })
 
-  // Create escrow invoice + payment
-  const contractorCompanyId = bid.rfq.project.contractorCompanyId
+  // Create escrow invoice using the discounted contractor amount
   const { payment } = await createServiceEscrowInvoice({
     jobCardId: jobCard.id,
     contractorCompanyId,
     serviceDescription: bid.rfq.title,
-    amountCents: bid.amountCents,
+    amountCents: commission.contractorAmountCents,
   })
 
   // Link payment back to job card
