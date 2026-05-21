@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getTierProgress } from '@/server/queries/dashboard'
-import { TIER_ORDER, TIER_THRESHOLDS, TIER_DISCOUNT_RATES, TIER_COMMISSION_RATES, TIER_TOKEN_MULTIPLIERS, TOKEN_AI_REVIEW, TOKEN_EXPERT_REVIEW, TOKEN_PROJECT_DONE, TOKENS_PER_RAND, getNextTier } from '@/lib/tier/rules'
+import { TIER_ORDER, TIER_THRESHOLDS, TIER_DISCOUNT_RATES, TIER_COMMISSION_RATES, getNextTier } from '@/lib/tier/rules'
 import type { Tier } from '@/lib/tier/rules'
 import { cn } from '@/lib/utils'
 import { Check, Lock } from 'lucide-react'
@@ -25,13 +25,11 @@ const TIER_BENEFITS: Record<Tier, Benefit[]> = {
     { text: '10% commission on O&M license sales' },
     { text: 'Project Funding Access — visibility to lenders and funding partners in the SEE network' },
     { text: 'Service Centre Access — post RFQs and hire from verified service providers' },
-    { text: 'SEE Token rewards — earn on every verified milestone, redeemable against hardware and service purchases' },
     { text: 'Hardware Marketplace — source panels, inverters, batteries, and accessories' },
   ],
   SILVER: [
     { text: '5% discount on all marketplace purchases', highlight: true },
     { text: '20% commission on O&M license sales', highlight: true },
-    { text: '1.5× token earn multiplier on all milestone rewards', highlight: true },
     { text: 'All Bronze benefits' },
     { text: 'SEE Certified badge — credential for external proposals and client marketing', highlight: true },
     { text: 'Leads marketplace — bid for incoming projects under 200 kW', highlight: true },
@@ -40,7 +38,6 @@ const TIER_BENEFITS: Record<Tier, Benefit[]> = {
   GOLD: [
     { text: '8% discount on all marketplace purchases', highlight: true },
     { text: '30% commission on O&M license sales', highlight: true },
-    { text: '2× token earn multiplier on all milestone rewards', highlight: true },
     { text: 'All Silver benefits' },
     { text: 'Leads marketplace — all project sizes, no capacity restriction', highlight: true },
     { text: 'Invitations to SEE networking events and industry conferences', highlight: true },
@@ -49,7 +46,6 @@ const TIER_BENEFITS: Record<Tier, Benefit[]> = {
   PLATINUM: [
     { text: '10% discount — highest available rate on marketplace purchases', highlight: true },
     { text: '40% commission on O&M license sales — maximum rate', highlight: true },
-    { text: '3× token earn multiplier — fastest way to accumulate rewards', highlight: true },
     { text: 'All Gold benefits' },
     { text: 'Dedicated account manager', highlight: true },
     { text: 'Invite-only Platinum roundtables with project developers and funders', highlight: true },
@@ -243,109 +239,6 @@ export default async function TiersPage() {
         })}
       </div>
 
-      {/* Token economy */}
-      <div className="space-y-3">
-        <div>
-          <h2 className="text-sm font-semibold text-ink-900">SEE Token economy</h2>
-          <p className="text-xs text-ink-500 mt-0.5">
-            Tokens are earned when milestones are verified. Expert-reviewed milestones earn 3× more than
-            AI-reviewed ones. Redeem tokens as additional discounts on hardware and service purchases —
-            stacked on top of your tier discount.
-          </p>
-        </div>
-
-        {/* Exchange rate callout */}
-        <div className="rounded-md bg-ink-900 px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-white">Token exchange rate</p>
-            <p className="text-[10px] text-ink-400 mt-0.5">Applied at checkout on hardware and service purchases</p>
-          </div>
-          <div className="text-right">
-            <p className="text-lg font-semibold text-white tabular-nums">
-              {TOKENS_PER_RAND} tokens = R1
-            </p>
-            <p className="text-[10px] text-ink-400">no minimum · stacks with tier discount</p>
-          </div>
-        </div>
-
-        {/* Earn rate table */}
-        <div className="rounded-md border border-ink-200 overflow-hidden">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-ink-25 border-b border-ink-100">
-                <th className="px-3 py-2 text-left font-semibold text-ink-500">Tier</th>
-                <th className="px-3 py-2 text-center font-semibold text-ink-500">Multiplier</th>
-                <th className="px-3 py-2 text-right font-semibold text-ink-500">AI review accepted</th>
-                <th className="px-3 py-2 text-right font-semibold text-ink-500">Expert review accepted</th>
-                <th className="px-3 py-2 text-right font-semibold text-ink-500">Project complete</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink-50">
-              {TIER_ORDER.map((t) => {
-                const isActive = t === tier
-                const mult = TIER_TOKEN_MULTIPLIERS[t]
-                const colour = TIER_COLOURS[t]
-                return (
-                  <tr key={t} className={cn(isActive ? 'bg-white' : 'bg-ink-25/50')}>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: colour }} />
-                        <span className={cn('font-medium', isActive ? 'text-ink-900' : 'text-ink-400')}>
-                          {TIER_LABELS[t]}
-                          {isActive && <span className="ml-1.5 text-[10px] text-accent-500">current</span>}
-                        </span>
-                      </div>
-                    </td>
-                    <td className={cn('px-3 py-2 text-center font-semibold tabular-nums', isActive ? 'text-ink-900' : 'text-ink-300')}>
-                      {mult}×
-                    </td>
-                    <td className={cn('px-3 py-2 text-right tabular-nums', isActive ? 'text-ink-700' : 'text-ink-300')}>
-                      {Math.round(TOKEN_AI_REVIEW * mult).toLocaleString()}
-                      <span className={cn('ml-1 text-[10px]', isActive ? 'text-ink-400' : 'text-ink-200')}>
-                        = R{(Math.round(TOKEN_AI_REVIEW * mult) / TOKENS_PER_RAND).toFixed(0)}
-                      </span>
-                    </td>
-                    <td className={cn('px-3 py-2 text-right tabular-nums', isActive ? 'text-ink-700' : 'text-ink-300')}>
-                      {Math.round(TOKEN_EXPERT_REVIEW * mult).toLocaleString()}
-                      <span className={cn('ml-1 text-[10px]', isActive ? 'text-ink-400' : 'text-ink-200')}>
-                        = R{(Math.round(TOKEN_EXPERT_REVIEW * mult) / TOKENS_PER_RAND).toFixed(0)}
-                      </span>
-                    </td>
-                    <td className={cn('px-3 py-2 text-right tabular-nums font-semibold', isActive ? 'text-ink-900' : 'text-ink-300')}>
-                      {Math.round(TOKEN_PROJECT_DONE * mult).toLocaleString()}
-                      <span className={cn('ml-1 text-[10px] font-normal', isActive ? 'text-ink-400' : 'text-ink-200')}>
-                        = R{(Math.round(TOKEN_PROJECT_DONE * mult) / TOKENS_PER_RAND).toFixed(0)}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Redemption note */}
-        <div className="rounded-lg border border-ink-200 bg-white p-4 space-y-2">
-          <p className="text-xs font-semibold text-ink-700">Where tokens can be redeemed</p>
-          <ul className="space-y-1.5">
-            {[
-              { icon: '🔧', label: 'Service Centre', detail: 'Apply tokens toward any awarded RFQ payment' },
-              { icon: '🛒', label: 'Hardware Marketplace', detail: 'Apply tokens toward any hardware order at checkout' },
-            ].map((item) => (
-              <li key={item.label} className="flex items-start gap-2.5 text-xs">
-                <span>{item.icon}</span>
-                <div>
-                  <span className="font-medium text-ink-900">{item.label}</span>
-                  <span className="text-ink-500"> — {item.detail}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <p className="text-[10px] text-ink-400 pt-1 border-t border-ink-50 mt-2">
-            Tokens expire 12 months after they are earned. Your balance and full transaction history are visible in your Wallet.
-          </p>
-        </div>
-      </div>
     </div>
   )
 }

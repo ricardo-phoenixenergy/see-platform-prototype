@@ -2,24 +2,18 @@ import { db } from '@/lib/db'
 import { getTierForMetrics, TIER_THRESHOLDS, TIER_ORDER, type Tier } from '@/lib/tier/rules'
 
 export async function getTierInfo(companyId: string) {
-  const [tier, wallet] = await Promise.all([
-    db.tierStatus.findUnique({ where: { companyId } }),
-    db.walletBalance.findUnique({ where: { companyId } }),
-  ])
-  return {
-    tier: (tier?.tier ?? 'BRONZE') as 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM',
-    tokens: wallet?.tokens ?? 0,
-  }
+  const tierStatus = await db.tierStatus.findUnique({
+    where: { companyId },
+    select: { tier: true },
+  })
+  return { tier: (tierStatus?.tier ?? 'BRONZE') as import('@/lib/tier/rules').Tier }
 }
 
 export async function getDashboardStats(companyId: string) {
-  const [projects, wallet] = await Promise.all([
-    db.project.findMany({
-      where: { contractorCompanyId: companyId, deletedAt: null },
-      select: { stage: true, contractValueCents: true, ppaTariffCents: true, systemSizeKw: true },
-    }),
-    db.walletBalance.findUnique({ where: { companyId } }),
-  ])
+  const projects = await db.project.findMany({
+    where: { contractorCompanyId: companyId, deletedAt: null },
+    select: { stage: true, contractValueCents: true, ppaTariffCents: true, systemSizeKw: true },
+  })
 
   const active = projects.filter(p => !['OPERATIONAL', 'DECOMMISSIONED'].includes(p.stage)).length
   const operational = projects.filter(p => p.stage === 'OPERATIONAL').length
@@ -29,7 +23,6 @@ export async function getDashboardStats(companyId: string) {
     activeProjects: active,
     operationalSites: operational,
     totalPortfolioKw: Math.round(totalKw),
-    tokenBalance: wallet?.tokens ?? 0,
   }
 }
 

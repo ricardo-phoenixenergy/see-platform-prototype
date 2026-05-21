@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Wordmark } from '@/components/brand/wordmark'
 import {
-  LayoutDashboard, FolderOpen, ShoppingBag, Wallet,
+  LayoutDashboard, FolderOpen, ShoppingBag,
   Building2, ChevronLeft, ChevronRight, Wrench, TrendingUp, Lock,
   ClipboardList, Scale, HelpCircle, Settings, BarChart3, Briefcase, User, Link2, Layers, Users,
 } from 'lucide-react'
@@ -21,7 +21,6 @@ export type NavItem = {
 
 type TierInfo = {
   tier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
-  tokens: number
 }
 
 type Props = {
@@ -143,15 +142,6 @@ export function Sidebar({ navItems, tierInfo }: Props) {
             )}
           </Link>
 
-          {/* Token balance */}
-          {!collapsed && (
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-ink-400">Tokens</span>
-              <span className="text-xs font-semibold text-ink-700 tabular-nums">
-                {tierInfo.tokens.toLocaleString()}
-              </span>
-            </div>
-          )}
         </div>
       )}
     </aside>
@@ -166,7 +156,6 @@ export const CONTRACTOR_NAV: NavItem[] = [
   { label: 'Marketplace', href: '/contractor/marketplace', icon: ShoppingBag },
   { label: 'Service Centre', href: '/contractor/service-center', icon: Wrench },
   { label: 'Leads', href: '/contractor/leads', icon: TrendingUp, minTier: 'SILVER' as const },
-  { label: 'Wallet', href: '/contractor/wallet', icon: Wallet },
   { label: 'Company', href: '/contractor/company', icon: Building2 },
 ]
 

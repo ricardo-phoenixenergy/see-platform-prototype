@@ -4,19 +4,15 @@
 import { useState } from 'react'
 import { Star, Loader2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { EXPERT_VERIFICATION_COST_TOKENS } from '@/lib/ai/verification-stubs'
-
 type Props = {
   submissionId: string
   milestoneId: string
-  tokenBalance: number
 }
 
-export function ExpertVerifyButton({ submissionId, milestoneId, tokenBalance }: Props) {
+export function ExpertVerifyButton({ submissionId, milestoneId }: Props) {
   const [open, setOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const queryClient = useQueryClient()
-  const canAfford = tokenBalance >= EXPERT_VERIFICATION_COST_TOKENS
 
   const request = useMutation<{ verificationId: string }, Error>({
     mutationFn: async () => {
@@ -51,12 +47,10 @@ export function ExpertVerifyButton({ submissionId, milestoneId, tokenBalance }: 
     <>
       <button
         onClick={() => setOpen(true)}
-        disabled={!canAfford}
-        className="flex items-center gap-2 h-8 px-3 rounded-md border border-ink-200 text-ink-600 text-xs font-medium hover:bg-ink-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        title={canAfford ? undefined : 'Insufficient tokens'}
+        className="flex items-center gap-2 h-8 px-3 rounded-md border border-ink-200 text-ink-600 text-xs font-medium hover:bg-ink-50 transition-colors"
       >
         <Star className="h-3.5 w-3.5" strokeWidth={1.5} />
-        Expert verification — {EXPERT_VERIFICATION_COST_TOKENS.toLocaleString()} tokens
+        Expert verification
       </button>
 
       {open && (
@@ -74,14 +68,8 @@ export function ExpertVerifyButton({ submissionId, milestoneId, tokenBalance }: 
             </div>
             <div className="rounded-md bg-ink-25 border border-ink-200 px-4 py-3 text-xs space-y-1">
               <div className="flex justify-between">
-                <span className="text-ink-500">Cost</span>
-                <span className="font-semibold text-ink-900">{EXPERT_VERIFICATION_COST_TOKENS.toLocaleString()} tokens</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-ink-500">Balance after</span>
-                <span className={tokenBalance - EXPERT_VERIFICATION_COST_TOKENS < 0 ? 'text-danger-500 font-medium' : 'text-ink-700'}>
-                  {(tokenBalance - EXPERT_VERIFICATION_COST_TOKENS).toLocaleString()} tokens
-                </span>
+                <span className="text-ink-500">Turnaround</span>
+                <span className="font-semibold text-ink-900">2–5 business days</span>
               </div>
             </div>
             {request.error && (

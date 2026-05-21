@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
-import { ShoppingCart, X, Trash2, Plus, Minus, CheckCircle, Coins } from 'lucide-react'
+import { X, ShoppingCart, Trash2, Plus, Minus, CheckCircle } from 'lucide-react'
 import { useCartStore } from '@/lib/cart-store'
-import { TOKENS_PER_RAND, maxTokenBurnForHardware } from '@/lib/tier/rules'
 import { cn } from '@/lib/utils'
 
 function fmt(cents: number) {
@@ -12,39 +11,23 @@ function fmt(cents: number) {
 }
 
 function CartPanel({
-  onClose, tokenBalance, discountPercent = 0,
+  onClose, discountPercent = 0,
 }: {
-  onClose: () => void; tokenBalance: number; discountPercent?: number
+  onClose: () => void; discountPercent?: number
 }) {
   const { items, removeItem, updateQty, clear, totalCents } = useCartStore()
-  const [tokensToburn, setTokensToBurn] = useState(0)
   const [ordered, setOrdered] = useState(false)
 
   const total = totalCents()
-
-  // Cap: net discount (tier + tokens) must not exceed 10%
-  const maxBurnable = useMemo(
-    () => maxTokenBurnForHardware(total, discountPercent, tokenBalance),
-    [total, discountPercent, tokenBalance]
-  )
-
-  // Reconstruct original (pre-tier-discount) total for the breakdown
   const originalTotalCents = discountPercent > 0
     ? Math.round(total / (1 - discountPercent / 100))
     : total
   const tierSavingsCents = originalTotalCents - total
-  const tokenDiscountCents = Math.round((tokensToburn / TOKENS_PER_RAND) * 100)
-  const finalCents = Math.max(0, total - tokenDiscountCents)
-
-  // Reset burn amount if it exceeds new max (e.g. after removing items)
-  const safeBurn = Math.min(tokensToburn, maxBurnable)
-  if (safeBurn !== tokensToburn) setTokensToBurn(safeBurn)
 
   function handleOrder() {
     setOrdered(true)
     setTimeout(() => {
       clear()
-      setTokensToBurn(0)
       setOrdered(false)
       onClose()
     }, 2200)
@@ -133,64 +116,6 @@ function CartPanel({
         {/* Footer */}
         {items.length > 0 && (
           <div className="border-t border-ink-100 px-5 py-4 space-y-4">
-
-            {/* Token burn section */}
-            <div className="rounded-md bg-ink-50 border border-ink-200 p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Coins className="h-3.5 w-3.5 text-amber-500" strokeWidth={1.5} />
-                  <span className="text-xs font-semibold text-ink-900">Burn tokens</span>
-                </div>
-                <span className="text-[10px] text-ink-500 tabular-nums">
-                  {tokenBalance.toLocaleString()} available · max {maxBurnable.toLocaleString()}
-                </span>
-              </div>
-
-              {maxBurnable === 0 ? (
-                <p className="text-xs text-ink-400">No tokens available to apply to this order.</p>
-              ) : (
-                <>
-                  <input
-                    type="range"
-                    min={0}
-                    max={maxBurnable}
-                    step={Math.max(1, Math.floor(maxBurnable / 100))}
-                    value={tokensToburn}
-                    onChange={(e) => setTokensToBurn(Number(e.target.value))}
-                    className="w-full accent-amber-500 cursor-pointer"
-                  />
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold text-ink-900 tabular-nums">
-                        {tokensToburn.toLocaleString()} tokens
-                      </span>
-                      {tokensToburn > 0 && (
-                        <span className="text-ink-400">
-                          = <span className="font-medium text-success-600">−R {fmt(tokenDiscountCents)}</span>
-                        </span>
-                      )}
-                    </div>
-                    {tokensToburn > 0 && (
-                      <button
-                        onClick={() => setTokensToBurn(0)}
-                        className="text-ink-400 hover:text-ink-700 transition-colors"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                  {tokensToburn === 0 && (
-                    <button
-                      onClick={() => setTokensToBurn(maxBurnable)}
-                      className="text-[10px] text-accent-600 hover:text-accent-700 transition-colors font-medium"
-                    >
-                      Apply maximum ({maxBurnable.toLocaleString()} tokens = R {fmt(Math.round(maxBurnable / TOKENS_PER_RAND * 100))})
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-
             {/* Itemised totals */}
             <div className="space-y-1.5 rounded-md bg-ink-25 border border-ink-100 px-3 py-3">
               <div className="flex items-center justify-between text-xs text-ink-500">
@@ -203,21 +128,9 @@ function CartPanel({
                   <span className="tabular-nums">−R {fmt(tierSavingsCents)}</span>
                 </div>
               )}
-              {tokensToburn > 0 && (
-                <div className="flex items-center justify-between text-xs text-success-600">
-                  <span>Token discount ({tokensToburn.toLocaleString()} tokens)</span>
-                  <span className="tabular-nums">−R {fmt(tokenDiscountCents)}</span>
-                </div>
-              )}
-              {(discountPercent > 0 || tokensToburn > 0) && (
-                <div className="flex items-center justify-between text-xs text-success-700 font-medium pt-0.5">
-                  <span>Total savings</span>
-                  <span className="tabular-nums">−R {fmt(tierSavingsCents + tokenDiscountCents)}</span>
-                </div>
-              )}
               <div className="flex items-center justify-between pt-1.5 border-t border-ink-200">
                 <span className="text-sm font-semibold text-ink-900">Total due</span>
-                <span className="text-base font-semibold text-ink-900 tabular-nums">R {fmt(finalCents)}</span>
+                <span className="text-base font-semibold text-ink-900 tabular-nums">R {fmt(total)}</span>
               </div>
             </div>
 
@@ -232,7 +145,7 @@ function CartPanel({
                   onClick={handleOrder}
                   className="w-full h-9 rounded-md bg-ink-900 text-white text-sm font-medium hover:bg-ink-800 transition-colors"
                 >
-                  Place order — R {fmt(finalCents)}
+                  Place order — R {fmt(total)}
                 </button>
                 <button onClick={clear} className="w-full text-xs text-ink-400 hover:text-ink-600 transition-colors">
                   Clear cart
@@ -246,9 +159,9 @@ function CartPanel({
   )
 }
 
-type CartButtonProps = { tokenBalance?: number; discountPercent?: number }
+type CartButtonProps = { discountPercent?: number }
 
-export function CartButton({ tokenBalance = 0, discountPercent = 0 }: CartButtonProps) {
+export function CartButton({ discountPercent = 0 }: CartButtonProps) {
   const [open, setOpen] = useState(false)
   const itemCount = useCartStore((s) => s.itemCount())
 
@@ -276,7 +189,7 @@ export function CartButton({ tokenBalance = 0, discountPercent = 0 }: CartButton
         )}
       </button>
 
-      {open && <CartPanel onClose={() => setOpen(false)} tokenBalance={tokenBalance} discountPercent={discountPercent} />}
+      {open && <CartPanel onClose={() => setOpen(false)} discountPercent={discountPercent} />}
     </div>
   )
 }

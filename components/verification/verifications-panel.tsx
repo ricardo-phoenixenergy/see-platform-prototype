@@ -23,11 +23,10 @@ type VerificationRecord = {
 type Props = {
   milestoneId: string
   milestoneName: string
-  tokenBalance: number
   showVerifyButtons: boolean
 }
 
-export function VerificationsPanel({ milestoneId, milestoneName, tokenBalance, showVerifyButtons }: Props) {
+export function VerificationsPanel({ milestoneId, milestoneName, showVerifyButtons }: Props) {
   const { data, isLoading } = useQuery<{
     submissionId: string | null
     submissionVersion: number | null
@@ -76,14 +75,12 @@ export function VerificationsPanel({ milestoneId, milestoneName, tokenBalance, s
                 submissionId={submissionId}
                 milestoneName={milestoneName}
                 milestoneId={milestoneId}
-                tokenBalance={tokenBalance}
               />
             )}
             {!hasExpertVerification && (
               <ExpertVerifyButton
                 submissionId={submissionId}
                 milestoneId={milestoneId}
-                tokenBalance={tokenBalance}
               />
             )}
           </div>

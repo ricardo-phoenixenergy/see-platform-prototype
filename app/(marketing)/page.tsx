@@ -23,7 +23,7 @@ const PROFESSIONAL_FEATURES = [
   'Service marketplace with escrow payments',
   'O&M monitoring dashboards',
   'Client portal management',
-  'Tier rewards & token economy',
+  'Tier rewards & marketplace discounts',
   'Priority support',
 ]
 
@@ -281,96 +281,6 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── Tier & Token Rewards ── */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <p className="text-xs font-semibold tracking-widest uppercase text-ink-400 mb-3">SEE Token Rewards</p>
-          <h2 className="text-3xl font-semibold tracking-tight text-ink-900">Get rewarded for quality projects.</h2>
-          <p className="mt-3 text-base text-ink-500 max-w-2xl mx-auto leading-relaxed">
-            Complete milestones and deliver projects to earn SEE Tokens. Tokens are redeemable
-            against hardware and services — and your tier multiplies every token you earn.
-          </p>
-        </div>
-
-        {/* Tier cards */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-4">
-          {([
-            {
-              name: 'Bronze',
-              color: '#A56A3E',
-              threshold: 'Starting tier',
-              stats: [
-                { value: '2%', label: 'Marketplace discount' },
-                { value: '10%', label: 'O&M commission' },
-                { value: '1×', label: 'Token multiplier' },
-              ],
-              unlocks: ['Full platform access', 'Marketplace bidding', 'Token rewards begin'],
-            },
-            {
-              name: 'Silver',
-              color: '#8B95A0',
-              threshold: '5 projects · 1,000 kW installed',
-              stats: [
-                { value: '5%', label: 'Marketplace discount' },
-                { value: '20%', label: 'O&M commission' },
-                { value: '1.5×', label: 'Token multiplier' },
-              ],
-              unlocks: ['Project leads from platform', 'Elevated token earnings'],
-            },
-            {
-              name: 'Gold',
-              color: '#C9A03E',
-              threshold: '25 projects · 5,000 kW installed',
-              stats: [
-                { value: '8%', label: 'Marketplace discount' },
-                { value: '30%', label: 'O&M commission' },
-                { value: '2×', label: 'Token multiplier' },
-              ],
-              unlocks: ['Access to networking events', 'Priority verification queue'],
-            },
-            {
-              name: 'Platinum',
-              color: '#6E7A8A',
-              threshold: '40 projects · 10,000 kW installed',
-              stats: [
-                { value: '10%', label: 'Marketplace discount' },
-                { value: '40%', label: 'O&M commission' },
-                { value: '3×', label: 'Token multiplier' },
-              ],
-              unlocks: ['SEE Certified badge', 'Dedicated premium support'],
-            },
-          ] as const).map((tier) => (
-            <div key={tier.name} className="rounded-xl border border-ink-200 bg-white p-6 flex flex-col gap-5">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: tier.color }} />
-                  <p className="text-sm font-semibold text-ink-900">{tier.name}</p>
-                </div>
-                <p className="text-xs text-ink-400">{tier.threshold}</p>
-              </div>
-
-              <div className="space-y-2.5">
-                {tier.stats.map(s => (
-                  <div key={s.label} className="flex items-baseline justify-between">
-                    <p className="text-xs text-ink-400">{s.label}</p>
-                    <p className="text-sm font-semibold text-ink-900">{s.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-4 border-t border-ink-100 space-y-2">
-                {tier.unlocks.map(u => (
-                  <div key={u} className="flex items-start gap-2">
-                    <CheckCircle className="h-3.5 w-3.5 text-ink-300 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-                    <p className="text-xs text-ink-500">{u}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 

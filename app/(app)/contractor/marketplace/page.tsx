@@ -43,7 +43,7 @@ export default async function HardwareMarketplacePage({ searchParams }: Props) {
             <Tag className="h-3.5 w-3.5 text-success-600" strokeWidth={1.5} />
             <span className="text-xs font-semibold text-success-700">{discountPercent}% {tierInfo.tier} discount applied</span>
           </div>
-          <CartButton tokenBalance={tierInfo.tokens} discountPercent={discountPercent} />
+          <CartButton discountPercent={discountPercent} />
         </div>
       </div>
 

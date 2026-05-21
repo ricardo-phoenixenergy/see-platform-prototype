@@ -43,7 +43,6 @@ export default async function ContractorDashboardPage({ searchParams }: Props) {
     { label: 'Active projects', value: String(stats.activeProjects), sub: 'across all stages' },
     { label: 'Operational sites', value: String(stats.operationalSites), sub: 'generating today' },
     { label: 'Portfolio capacity', value: `${stats.totalPortfolioKw.toLocaleString()} kW`, sub: 'total installed' },
-    { label: 'Token balance', value: stats.tokenBalance.toLocaleString(), sub: 'SEE tokens' },
   ]
 
   return (
