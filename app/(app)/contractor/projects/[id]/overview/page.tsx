@@ -23,6 +23,52 @@ const GRID_LABELS: Record<string, string> = {
   GRID_TIED: 'Grid-tied', OFF_GRID: 'Off-grid', GRID_TIED_WITH_BACKUP: 'Grid-tied with backup',
 }
 
+function parseSiteInfo(raw: unknown): SiteInfo | null {
+  if (!raw || typeof raw !== 'object') return null
+  const s = raw as Record<string, unknown>
+  if (!s.supplier || s.nmdKva === undefined || !s.supplyVoltage) return null
+  return raw as SiteInfo
+}
+
+function SiteSupplyCard({ s }: { s: SiteInfo }) {
+  const allTariffs = [...ESKOM_TARIFFS, ...MUNICIPAL_TARIFFS]
+  const tariffLabel = s.tariffName
+    ? allTariffs.find(t => t.value === s.tariffName)?.label ?? s.tariffName
+    : null
+  const supplierLabel = s.supplier === 'ESKOM' ? 'Eskom' : (s.municipalityName ?? 'Municipal utility')
+  return (
+    <Card>
+      <CardHeader><CardTitle>Site supply</CardTitle></CardHeader>
+      <CardContent>
+        <dl className="divide-y divide-ink-100">
+          <InfoRow label="Supplier" value={supplierLabel} />
+          {tariffLabel && (
+            <InfoRow
+              label="Tariff"
+              value={
+                <span className="flex items-center gap-2 justify-end">
+                  {tariffLabel}
+                  {s.isTOU && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-ink-100 text-ink-600">TOU</span>
+                  )}
+                </span>
+              }
+            />
+          )}
+          <InfoRow label="NMD" value={`${s.nmdKva} kVA`} />
+          <InfoRow label="Supply voltage" value={s.supplyVoltage} />
+          {s.transformerCapacityKva && (
+            <InfoRow label="Transformer" value={`${s.transformerCapacityKva} kVA`} />
+          )}
+          {s.accountNumber && (
+            <InfoRow label="Account ref." value={s.accountNumber} />
+          )}
+        </dl>
+      </CardContent>
+    </Card>
+  )
+}
+
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between py-3 first:pt-0 last:pb-0">
@@ -77,47 +123,10 @@ export default async function OverviewPage({ params }: Props) {
         </CardContent>
       </Card>
 
-      {/* Site supply card */}
-      {(() => {
-        if (!project.siteInfo) return null
-        const s = project.siteInfo as SiteInfo
-        const allTariffs = [...ESKOM_TARIFFS, ...MUNICIPAL_TARIFFS]
-        const tariffLabel = s.tariffName
-          ? allTariffs.find(t => t.value === s.tariffName)?.label ?? s.tariffName
-          : null
-        const supplierLabel = s.supplier === 'ESKOM' ? 'Eskom' : (s.municipalityName ?? 'Municipal utility')
-        return (
-          <Card>
-            <CardHeader><CardTitle>Site supply</CardTitle></CardHeader>
-            <CardContent>
-              <dl className="divide-y divide-ink-100">
-                <InfoRow label="Supplier" value={supplierLabel} />
-                {tariffLabel && (
-                  <InfoRow
-                    label="Tariff"
-                    value={
-                      <span className="flex items-center gap-2 justify-end">
-                        {tariffLabel}
-                        {s.isTOU && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-accent-500/10 text-accent-600">TOU</span>
-                        )}
-                      </span>
-                    }
-                  />
-                )}
-                <InfoRow label="NMD" value={`${s.nmdKva} kVA`} />
-                <InfoRow label="Supply voltage" value={s.supplyVoltage} />
-                {s.transformerCapacityKva && (
-                  <InfoRow label="Transformer" value={`${s.transformerCapacityKva} kVA`} />
-                )}
-                {s.accountNumber && (
-                  <InfoRow label="Account ref." value={s.accountNumber} />
-                )}
-              </dl>
-            </CardContent>
-          </Card>
-        )
-      })()}
+      {/* Site supply */}
+      {parseSiteInfo(project.siteInfo) && (
+        <SiteSupplyCard s={parseSiteInfo(project.siteInfo)!} />
+      )}
 
       {/* Tech scope detail cards — only shown for new projects with techScope JSON */}
       {scope && (
