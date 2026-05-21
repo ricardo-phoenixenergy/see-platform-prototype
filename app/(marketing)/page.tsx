@@ -249,7 +249,7 @@ export default function LandingPage() {
                 icon: ShoppingBag,
                 title: 'Hardware procurement marketplace',
                 description:
-                  'Browse verified suppliers, compare specifications, and purchase equipment directly. Tier discounts and token rewards reduce net cost for high-volume contractors.',
+                  'Browse verified suppliers, compare specifications, and purchase equipment directly. Tier discounts reduce net cost for high-volume contractors.',
               },
               {
                 icon: Users,

@@ -14,7 +14,6 @@ type ApiResponse = {
   verification: {
     id: string
     status: string
-    costTokens: number
     findings: VerificationStubResult['findings']
     confidence: number
     recommendation: string | null
@@ -70,7 +69,6 @@ export function AiVerifyButton({ submissionId, milestoneName, milestoneId }: Pro
           type: 'AI_AGENT',
           status: result.status as 'PASS' | 'FAIL',
           qualityRating: result.status === 'PASS' ? 'GREEN' : 'AMBER',
-          costTokens: result.costTokens,
           findings: result.findings,
           notes: result.recommendation,
           confidence: result.confidence,

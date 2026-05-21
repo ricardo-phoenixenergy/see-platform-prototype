@@ -6,7 +6,6 @@ export type ChatContext = {
   companyName: string
   companyType: string
   tier?: string
-  tokenBalance?: number
   currentPage: string
   currentProjectId?: string
   currentProjectName?: string
@@ -24,7 +23,6 @@ You are calm, technical, direct, and confident. You speak like Stripe documentat
 - Role: ${ctx.role}
 - Company: ${ctx.companyName} (${ctx.companyType})
 ${ctx.tier ? `- Platform tier: ${ctx.tier}` : ''}
-${ctx.tokenBalance != null ? `- Token balance: ${ctx.tokenBalance.toLocaleString()} tokens` : ''}
 - Currently viewing: ${ctx.currentPage}
 ${ctx.currentProjectId ? `- Active project: ${ctx.currentProjectName} (${ctx.currentProjectStage} stage)` : ''}
 

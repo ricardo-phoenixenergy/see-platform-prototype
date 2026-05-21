@@ -15,7 +15,6 @@ type VerificationRecord = {
   type: 'AI_AGENT' | 'EXPERT' | 'AUTO_GOLD_MARKETPLACE'
   status: 'PASS' | 'FAIL' | 'INCONCLUSIVE' | 'IN_PROGRESS'
   qualityRating: 'RED' | 'AMBER' | 'GREEN' | 'GOLD' | null
-  costTokens: number
   findings: Finding[]
   notes: string | null
   confidence?: number | null
@@ -82,7 +81,6 @@ export function VerificationResultCard({ verification, animate = false }: Props)
           {verification.confidence != null && (
             <span className="font-medium text-ink-600">{Math.round(verification.confidence * 100)}% confident</span>
           )}
-          <span>{verification.costTokens.toLocaleString()} tokens</span>
         </div>
       </div>
 

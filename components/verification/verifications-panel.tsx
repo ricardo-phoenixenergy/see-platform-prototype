@@ -12,7 +12,6 @@ type VerificationRecord = {
   type: 'AI_AGENT' | 'EXPERT' | 'AUTO_GOLD_MARKETPLACE'
   status: 'PASS' | 'FAIL' | 'INCONCLUSIVE' | 'IN_PROGRESS'
   qualityRating: 'RED' | 'AMBER' | 'GREEN' | 'GOLD' | null
-  costTokens: number
   findings: Array<{ type: 'verified' | 'warning' | 'missing'; text: string }>
   notes: string | null
   confidence?: number | null

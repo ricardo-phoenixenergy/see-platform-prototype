@@ -332,7 +332,7 @@ async function main() {
     },
   })
 
-  console.log('  ✓ Tier, wallet, KYC')
+  console.log('  ✓ Tier, KYC')
 
   // -------------------------------------------------------------------------
   // Service Provider Profile

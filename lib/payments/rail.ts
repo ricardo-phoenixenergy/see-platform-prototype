@@ -5,12 +5,10 @@ export type PaymentPurpose =
   | 'HARDWARE'
   | 'ESCROW'
   | 'SUBSCRIPTION'
-  | 'TOKEN_PURCHASE'
 
 export type PaymentRail = 'EFT' | 'PAYFAST'
 
 export function suggestPaymentRail(amountCents: number, purpose: PaymentPurpose): PaymentRail {
-  if (purpose === 'TOKEN_PURCHASE') return 'PAYFAST'
   if (purpose === 'SUBSCRIPTION') return 'PAYFAST'
   if (amountCents < 1_000_000) return 'PAYFAST'
   return 'EFT'
