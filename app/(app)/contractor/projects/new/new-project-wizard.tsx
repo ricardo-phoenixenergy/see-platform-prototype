@@ -35,26 +35,17 @@ const schema = z.object({
   // Step 1 — tech flags
   hasPv: z.boolean(),
   hasBess: z.boolean(),
-  hasWind: z.boolean(),
   hasWheeling: z.boolean(),
 
   // PV
   pvCapacityKwp: optNum,
-  pvPanelBrand: z.string().optional(),
-  pvInverterBrand: z.string().optional(),
-  pvMountingType: z.enum(['ROOFTOP', 'GROUND_MOUNT', 'CARPORT']).optional(),
+  pvMountingType: z.array(z.enum(['ROOFTOP', 'GROUND_MOUNT', 'CARPORT'])).optional(),
 
   // BESS
   bessCapacityKwh: optNum,
   bessPowerKw: optNum,
   bessChemistry: z.enum(['LFP', 'NMC', 'VRLA']).optional(),
-  bessBrandModel: z.string().optional(),
   bessAutonomyHours: optNum,
-
-  // Wind
-  windCapacityKw: optNum,
-  windTurbineModel: z.string().optional(),
-  windHubHeightM: optNum,
 
   // Wheeling
   wheelingAgreementType: z.enum(['VIRTUAL_NET_METERING', 'OPEN_ACCESS', 'BILATERAL']).optional(),
@@ -116,8 +107,8 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
       clientName: defaultClient?.name ?? '',
       hasPv: true,
       hasBess: false,
-      hasWind: false,
       hasWheeling: false,
+      pvMountingType: [],
       designObjectives: ['SELF_CONSUMPTION'],
       exportToGrid: false,
       gridConnectionStatus: 'GRID_TIED',
@@ -127,7 +118,7 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
 
   const values = watch()
 
-  const anyTechSelected = values.hasPv || values.hasBess || values.hasWind || values.hasWheeling
+  const anyTechSelected = values.hasPv || values.hasBess || values.hasWheeling
 
   async function onSubmit(data: FormData) {
     setError(null)
@@ -256,11 +247,10 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
               {!anyTechSelected && (
                 <p className="text-xs text-danger-500">Select at least one technology to continue.</p>
               )}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {([
                   { field: 'hasPv' as const, label: 'Solar PV', sub: 'Photovoltaic generation' },
                   { field: 'hasBess' as const, label: 'Battery Storage', sub: 'BESS / energy storage' },
-                  { field: 'hasWind' as const, label: 'Wind', sub: 'Wind turbine generation' },
                   { field: 'hasWheeling' as const, label: 'Wheeling / Trading', sub: 'Energy trading via grid' },
                 ]).map(({ field, label, sub }) => (
                   <label key={field} className={cn(
@@ -281,18 +271,37 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
             {values.hasPv && (
               <div className="space-y-3 rounded-md border border-ink-200 p-4">
                 <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Solar PV details</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input label="PV capacity (kWp)" type="number" placeholder="500" {...register('pvCapacityKwp')} />
-                  <Input label="Panel brand / model" placeholder="e.g. Jinko Tiger Neo" {...register('pvPanelBrand')} />
-                  <Input label="Inverter brand" placeholder="e.g. SMA Sunny Tripower" {...register('pvInverterBrand')} />
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-ink-900">Mounting type</label>
-                    <select {...register('pvMountingType')} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm focus:border-accent-500 focus:outline-none">
-                      <option value="">Select…</option>
-                      {(Object.entries(MOUNTING_TYPE_LABELS) as [string, string][]).map(([v, l]) => (
-                        <option key={v} value={v}>{l}</option>
-                      ))}
-                    </select>
+                <Input label="PV capacity (kWp)" type="number" placeholder="500" {...register('pvCapacityKwp')} />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-ink-900">Mounting type <span className="text-ink-400 font-normal">(select all that apply)</span></p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {(Object.entries(MOUNTING_TYPE_LABELS) as [import('@/lib/tech-scope').PvMountingType, string][]).map(([val, label]) => (
+                      <label key={val} className={cn(
+                        'flex items-center gap-2.5 rounded-md border px-3 py-2.5 cursor-pointer transition-colors',
+                        values.pvMountingType?.includes(val) ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
+                      )}>
+                        <Controller
+                          name="pvMountingType"
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              type="checkbox"
+                              checked={field.value?.includes(val) ?? false}
+                              onChange={e => {
+                                const current = field.value ?? []
+                                field.onChange(
+                                  e.target.checked
+                                    ? [...current, val]
+                                    : current.filter(v => v !== val)
+                                )
+                              }}
+                              className="accent-accent-600"
+                            />
+                          )}
+                        />
+                        <span className="text-sm font-medium text-ink-900">{label}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -314,21 +323,8 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
                       ))}
                     </select>
                   </div>
-                  <Input label="Brand / model" placeholder="e.g. Dyness B5" {...register('bessBrandModel')} />
                 </div>
                 <Input label="Target backup autonomy (hours)" type="number" placeholder="4" hint="Hours of full-load backup required" {...register('bessAutonomyHours')} />
-              </div>
-            )}
-
-            {/* Wind details */}
-            {values.hasWind && (
-              <div className="space-y-3 rounded-md border border-ink-200 p-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Wind details</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input label="Wind capacity (kW)" type="number" placeholder="250" {...register('windCapacityKw')} />
-                  <Input label="Turbine model" placeholder="e.g. Vestas V90" {...register('windTurbineModel')} />
-                  <Input label="Hub height (m)" type="number" placeholder="80" {...register('windHubHeightM')} />
-                </div>
               </div>
             )}
 
@@ -487,7 +483,6 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
                   value: [
                     values.hasPv && 'Solar PV',
                     values.hasBess && 'BESS',
-                    values.hasWind && 'Wind',
                     values.hasWheeling && 'Wheeling',
                   ].filter(Boolean).join(' + '),
                 },

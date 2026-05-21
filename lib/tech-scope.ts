@@ -9,26 +9,17 @@ export type TechScope = {
   // Technology flags — at least one must be true
   hasPv: boolean
   hasBess: boolean
-  hasWind: boolean
   hasWheeling: boolean
 
   // PV details (present when hasPv)
   pvCapacityKwp?: number
-  pvPanelBrand?: string
-  pvInverterBrand?: string
-  pvMountingType?: PvMountingType
+  pvMountingType?: PvMountingType[] // multi-select: Rooftop + Ground Mount combinations
 
   // BESS details (present when hasBess)
   bessCapacityKwh?: number
   bessPowerKw?: number
   bessChemistry?: BessChemistry
-  bessBrandModel?: string
   bessAutonomyHours?: number
-
-  // Wind details (present when hasWind)
-  windCapacityKw?: number
-  windTurbineModel?: string
-  windHubHeightM?: number
 
   // Wheeling (present when hasWheeling)
   wheelingAgreementType?: WheelingAgreementType
@@ -41,13 +32,12 @@ export type TechScope = {
   exportToGrid: boolean
 }
 
-export type DerivedTechnology = 'SOLAR_PV' | 'WIND' | 'BESS' | 'HYBRID'
+export type DerivedTechnology = 'SOLAR_PV' | 'BESS' | 'HYBRID'
 
 export function deriveTechnology(scope: TechScope): DerivedTechnology {
-  const primaryCount = [scope.hasPv, scope.hasBess, scope.hasWind].filter(Boolean).length
+  const primaryCount = [scope.hasPv, scope.hasBess].filter(Boolean).length
   if (primaryCount > 1) return 'HYBRID'
   if (scope.hasBess) return 'BESS'
-  if (scope.hasWind) return 'WIND'
   if (scope.hasPv) return 'SOLAR_PV'
   // hasWheeling only — treat as HYBRID (wheeling always accompanies generation in practice)
   if (scope.hasWheeling) return 'HYBRID'

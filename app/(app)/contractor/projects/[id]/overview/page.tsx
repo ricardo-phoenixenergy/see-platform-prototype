@@ -49,7 +49,6 @@ export default async function OverviewPage({ params }: Props) {
     ? [
         scope.hasPv && 'Solar PV',
         scope.hasBess && 'Battery Storage (BESS)',
-        scope.hasWind && 'Wind',
         scope.hasWheeling && 'Wheeling / Energy Trading',
       ].filter(Boolean).join(', ')
     : TECH_LABELS[project.technology] ?? project.technology
@@ -86,9 +85,12 @@ export default async function OverviewPage({ params }: Props) {
               <CardContent>
                 <dl className="divide-y divide-ink-100">
                   {scope.pvCapacityKwp && <InfoRow label="Capacity" value={`${scope.pvCapacityKwp} kWp`} />}
-                  {scope.pvPanelBrand && <InfoRow label="Panel brand" value={scope.pvPanelBrand} />}
-                  {scope.pvInverterBrand && <InfoRow label="Inverter brand" value={scope.pvInverterBrand} />}
-                  {scope.pvMountingType && <InfoRow label="Mounting" value={MOUNTING_TYPE_LABELS[scope.pvMountingType]} />}
+                  {scope.pvMountingType?.length ? (
+                    <InfoRow
+                      label="Mounting"
+                      value={scope.pvMountingType.map(m => MOUNTING_TYPE_LABELS[m]).join(' + ')}
+                    />
+                  ) : null}
                 </dl>
               </CardContent>
             </Card>
@@ -102,21 +104,7 @@ export default async function OverviewPage({ params }: Props) {
                   {scope.bessCapacityKwh && <InfoRow label="Capacity" value={`${scope.bessCapacityKwh} kWh`} />}
                   {scope.bessPowerKw && <InfoRow label="Power rating" value={`${scope.bessPowerKw} kW`} />}
                   {scope.bessChemistry && <InfoRow label="Chemistry" value={BESS_CHEMISTRY_LABELS[scope.bessChemistry]} />}
-                  {scope.bessBrandModel && <InfoRow label="Brand / model" value={scope.bessBrandModel} />}
                   {scope.bessAutonomyHours && <InfoRow label="Target autonomy" value={`${scope.bessAutonomyHours} hours`} />}
-                </dl>
-              </CardContent>
-            </Card>
-          )}
-
-          {scope.hasWind && (
-            <Card>
-              <CardHeader><CardTitle>Wind</CardTitle></CardHeader>
-              <CardContent>
-                <dl className="divide-y divide-ink-100">
-                  {scope.windCapacityKw && <InfoRow label="Capacity" value={`${scope.windCapacityKw} kW`} />}
-                  {scope.windTurbineModel && <InfoRow label="Turbine model" value={scope.windTurbineModel} />}
-                  {scope.windHubHeightM && <InfoRow label="Hub height" value={`${scope.windHubHeightM} m`} />}
                 </dl>
               </CardContent>
             </Card>

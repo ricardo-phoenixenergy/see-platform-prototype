@@ -25,26 +25,17 @@ const CreateProjectSchema = z.object({
   // Tech scope flags
   hasPv: z.boolean(),
   hasBess: z.boolean(),
-  hasWind: z.boolean(),
   hasWheeling: z.boolean(),
 
   // PV
   pvCapacityKwp: optNum,
-  pvPanelBrand: z.string().optional(),
-  pvInverterBrand: z.string().optional(),
-  pvMountingType: z.enum(['ROOFTOP', 'GROUND_MOUNT', 'CARPORT']).optional(),
+  pvMountingType: z.array(z.enum(['ROOFTOP', 'GROUND_MOUNT', 'CARPORT'])).optional(),
 
   // BESS
   bessCapacityKwh: optNum,
   bessPowerKw: optNum,
   bessChemistry: z.enum(['LFP', 'NMC', 'VRLA']).optional(),
-  bessBrandModel: z.string().optional(),
   bessAutonomyHours: optNum,
-
-  // Wind
-  windCapacityKw: optNum,
-  windTurbineModel: z.string().optional(),
-  windHubHeightM: optNum,
 
   // Wheeling
   wheelingAgreementType: z.enum(['VIRTUAL_NET_METERING', 'OPEN_ACCESS', 'BILATERAL']).optional(),
@@ -83,7 +74,6 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
   const technology = deriveTechnology({
     hasPv: data.hasPv,
     hasBess: data.hasBess,
-    hasWind: data.hasWind,
     hasWheeling: data.hasWheeling,
     designObjectives: data.designObjectives,
     exportToGrid: data.exportToGrid,
@@ -93,25 +83,16 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
   const techScope = {
     hasPv: data.hasPv,
     hasBess: data.hasBess,
-    hasWind: data.hasWind,
     hasWheeling: data.hasWheeling,
     ...(data.hasPv ? {
       pvCapacityKwp: data.pvCapacityKwp,
-      pvPanelBrand: data.pvPanelBrand || undefined,
-      pvInverterBrand: data.pvInverterBrand || undefined,
-      pvMountingType: data.pvMountingType,
+      pvMountingType: data.pvMountingType?.length ? data.pvMountingType : undefined,
     } : {}),
     ...(data.hasBess ? {
       bessCapacityKwh: data.bessCapacityKwh,
       bessPowerKw: data.bessPowerKw,
       bessChemistry: data.bessChemistry,
-      bessBrandModel: data.bessBrandModel || undefined,
       bessAutonomyHours: data.bessAutonomyHours,
-    } : {}),
-    ...(data.hasWind ? {
-      windCapacityKw: data.windCapacityKw,
-      windTurbineModel: data.windTurbineModel || undefined,
-      windHubHeightM: data.windHubHeightM,
     } : {}),
     ...(data.hasWheeling ? {
       wheelingAgreementType: data.wheelingAgreementType,
