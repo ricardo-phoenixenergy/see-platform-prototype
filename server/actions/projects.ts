@@ -125,7 +125,7 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
   const siteInfo = {
     supplier: data.supplier,
     ...(data.supplier === 'MUNICIPAL' ? { municipalityName: data.municipalityName } : {}),
-    tariffName: data.tariffName || undefined,
+    ...(data.tariffName ? { tariffName: data.tariffName } : {}),
     isTOU: data.isTOU,
     nmdKva: data.nmdKva,
     supplyVoltage: data.supplyVoltage,
