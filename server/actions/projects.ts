@@ -22,6 +22,16 @@ const CreateProjectSchema = z.object({
   province: z.string().min(2),
   clientNeeds: z.string().optional(),
 
+  // Tariff & grid supply
+  supplier: z.enum(['ESKOM', 'MUNICIPAL']),
+  municipalityName: z.string().optional(),
+  tariffName: z.string().optional(),
+  isTOU: z.boolean(),
+  nmdKva: z.coerce.number().positive('NMD is required'),
+  supplyVoltage: z.enum(['LV', 'MV', 'HV']),
+  transformerCapacityKva: optNum,
+  accountNumber: z.string().optional(),
+
   // Tech scope flags
   hasPv: z.boolean(),
   hasBess: z.boolean(),
@@ -112,6 +122,17 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
     exportToGrid: data.exportToGrid,
   }
 
+  const siteInfo = {
+    supplier: data.supplier,
+    ...(data.supplier === 'MUNICIPAL' ? { municipalityName: data.municipalityName } : {}),
+    tariffName: data.tariffName || undefined,
+    isTOU: data.isTOU,
+    nmdKva: data.nmdKva,
+    supplyVoltage: data.supplyVoltage,
+    ...(data.transformerCapacityKva ? { transformerCapacityKva: data.transformerCapacityKva } : {}),
+    ...(data.accountNumber ? { accountNumber: data.accountNumber } : {}),
+  }
+
   try {
     const template = await selectMilestoneTemplate(technology, systemSizeKw, data.dealStructure)
 
@@ -148,6 +169,7 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
           dealStructure: data.dealStructure,
           gridConnectionStatus: data.gridConnectionStatus,
           techScope,
+          siteInfo,
           ...(data.clientNeeds ? { clientNeeds: data.clientNeeds } : {}),
           templateSnapshot,
           templateVersion: template.version,
