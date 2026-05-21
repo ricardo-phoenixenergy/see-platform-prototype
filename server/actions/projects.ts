@@ -27,27 +27,30 @@ const CreateProjectSchema = z.object({
   hasBess: z.boolean(),
   hasWheeling: z.boolean(),
 
+  // Inverter topology (when hasPv && hasBess)
+  inverterTopology: z.enum(['HYBRID', 'SEPARATE_GTI_PCS']).optional(),
+
+  // Sizing
+  pvInverterKw: optNum,   // hybrid inverter size (HYBRID) or PV GTI size (SEPARATE_GTI_PCS / PV-only)
+  bessInverterKw: optNum, // PCS size (SEPARATE_GTI_PCS or BESS-only)
+
   // PV
-  pvCapacityKwp: optNum,
   pvMountingType: z.array(z.enum(['ROOFTOP', 'GROUND_MOUNT', 'CARPORT'])).optional(),
 
   // BESS
   bessCapacityKwh: optNum,
-  bessPowerKw: optNum,
   bessChemistry: z.enum(['LFP', 'NMC', 'VRLA']).optional(),
-  bessAutonomyHours: optNum,
 
   // Wheeling
   wheelingAgreementType: z.enum(['VIRTUAL_NET_METERING', 'OPEN_ACCESS', 'BILATERAL']).optional(),
+  wheelingCapacityKw: optNum,
   wheelingDistanceKm: optNum,
   wheelingTradingPartner: z.string().optional(),
 
-  // System design
-  systemSizeKw: z.coerce.number().positive('System size must be positive'),
+  // Grid & design
   gridConnectionStatus: z.enum(['GRID_TIED', 'OFF_GRID', 'GRID_TIED_WITH_BACKUP']),
-  designObjectives: z.array(z.enum(['SELF_CONSUMPTION', 'PEAK_SHAVING', 'BACKUP', 'GRID_EXPORT'])),
+  designObjectives: z.array(z.enum(['SELF_CONSUMPTION', 'PEAK_SHAVING', 'BACKUP', 'GRID_EXPORT', 'ARBITRAGE'])),
   exportToGrid: z.boolean(),
-  targetBackupHours: optNum,
 
   // Commercial
   dealStructure: z.enum(['OUTRIGHT', 'PPA', 'LEASE', 'WHEELING_AGREEMENT']),
@@ -75,37 +78,42 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
     hasPv: data.hasPv,
     hasBess: data.hasBess,
     hasWheeling: data.hasWheeling,
-    designObjectives: data.designObjectives,
-    exportToGrid: data.exportToGrid,
   })
 
-  // Build techScope JSON from flat form fields
+  // systemSizeKw: PV inverter AC output if PV present, else PCS size for BESS-only
+  const systemSizeKw = data.hasPv
+    ? (data.pvInverterKw ?? 0)
+    : (data.bessInverterKw ?? 0)
+
+  // Build techScope JSON
   const techScope = {
     hasPv: data.hasPv,
     hasBess: data.hasBess,
     hasWheeling: data.hasWheeling,
+    ...(data.hasPv || data.hasBess ? { inverterTopology: data.inverterTopology } : {}),
     ...(data.hasPv ? {
-      pvCapacityKwp: data.pvCapacityKwp,
+      pvInverterKw: data.pvInverterKw,
       pvMountingType: data.pvMountingType?.length ? data.pvMountingType : undefined,
+    } : {}),
+    ...(data.hasBess && (!data.hasPv || data.inverterTopology === 'SEPARATE_GTI_PCS') ? {
+      bessInverterKw: data.bessInverterKw,
     } : {}),
     ...(data.hasBess ? {
       bessCapacityKwh: data.bessCapacityKwh,
-      bessPowerKw: data.bessPowerKw,
       bessChemistry: data.bessChemistry,
-      bessAutonomyHours: data.bessAutonomyHours,
     } : {}),
     ...(data.hasWheeling ? {
       wheelingAgreementType: data.wheelingAgreementType,
+      wheelingCapacityKw: data.wheelingCapacityKw,
       wheelingDistanceKm: data.wheelingDistanceKm,
       wheelingTradingPartner: data.wheelingTradingPartner || undefined,
     } : {}),
     designObjectives: data.designObjectives,
     exportToGrid: data.exportToGrid,
-    targetBackupHours: data.targetBackupHours,
   }
 
   try {
-    const template = await selectMilestoneTemplate(technology, data.systemSizeKw, data.dealStructure)
+    const template = await selectMilestoneTemplate(technology, systemSizeKw, data.dealStructure)
 
     const templateSnapshot = template.items.map(item => ({
       id: item.id,
@@ -135,7 +143,7 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
           ...(data.clientRecordId ? { clientRecordId: data.clientRecordId } : {}),
           siteId: site.id,
           technology,
-          systemSizeKw: data.systemSizeKw,
+          systemSizeKw,
           ...(data.hasBess && data.bessCapacityKwh ? { storageSizeKwh: data.bessCapacityKwh } : {}),
           dealStructure: data.dealStructure,
           gridConnectionStatus: data.gridConnectionStatus,

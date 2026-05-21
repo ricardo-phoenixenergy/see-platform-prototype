@@ -6,7 +6,7 @@ import { formatDate } from '@/lib/utils'
 import type { TechScope } from '@/lib/tech-scope'
 import {
   DESIGN_OBJECTIVE_LABELS, BESS_CHEMISTRY_LABELS,
-  MOUNTING_TYPE_LABELS, WHEELING_TYPE_LABELS,
+  MOUNTING_TYPE_LABELS, WHEELING_TYPE_LABELS, INVERTER_TOPOLOGY_LABELS,
 } from '@/lib/tech-scope'
 
 type Props = { params: Promise<{ id: string }> }
@@ -84,7 +84,15 @@ export default async function OverviewPage({ params }: Props) {
               <CardHeader><CardTitle>Solar PV</CardTitle></CardHeader>
               <CardContent>
                 <dl className="divide-y divide-ink-100">
-                  {scope.pvCapacityKwp && <InfoRow label="Capacity" value={`${scope.pvCapacityKwp} kWp`} />}
+                  {scope.pvInverterKw && (
+                    <InfoRow
+                      label={scope.inverterTopology === 'HYBRID' ? 'Hybrid inverter' : 'PV inverter'}
+                      value={`${scope.pvInverterKw} kW AC`}
+                    />
+                  )}
+                  {scope.inverterTopology && (
+                    <InfoRow label="Topology" value={INVERTER_TOPOLOGY_LABELS[scope.inverterTopology].label} />
+                  )}
                   {scope.pvMountingType?.length ? (
                     <InfoRow
                       label="Mounting"
@@ -101,10 +109,9 @@ export default async function OverviewPage({ params }: Props) {
               <CardHeader><CardTitle>Battery Storage</CardTitle></CardHeader>
               <CardContent>
                 <dl className="divide-y divide-ink-100">
+                  {scope.bessInverterKw && <InfoRow label="PCS rating" value={`${scope.bessInverterKw} kW`} />}
                   {scope.bessCapacityKwh && <InfoRow label="Capacity" value={`${scope.bessCapacityKwh} kWh`} />}
-                  {scope.bessPowerKw && <InfoRow label="Power rating" value={`${scope.bessPowerKw} kW`} />}
                   {scope.bessChemistry && <InfoRow label="Chemistry" value={BESS_CHEMISTRY_LABELS[scope.bessChemistry]} />}
-                  {scope.bessAutonomyHours && <InfoRow label="Target autonomy" value={`${scope.bessAutonomyHours} hours`} />}
                 </dl>
               </CardContent>
             </Card>
@@ -117,6 +124,9 @@ export default async function OverviewPage({ params }: Props) {
                 <dl className="divide-y divide-ink-100">
                   {scope.wheelingAgreementType && (
                     <InfoRow label="Agreement type" value={WHEELING_TYPE_LABELS[scope.wheelingAgreementType]} />
+                  )}
+                  {scope.wheelingCapacityKw && (
+                    <InfoRow label="Contracted capacity" value={`${scope.wheelingCapacityKw} kW`} />
                   )}
                   {scope.wheelingDistanceKm && (
                     <InfoRow label="Wheeling distance" value={`${scope.wheelingDistanceKm} km`} />
@@ -138,9 +148,6 @@ export default async function OverviewPage({ params }: Props) {
                     label="Objectives"
                     value={scope.designObjectives.map(o => DESIGN_OBJECTIVE_LABELS[o]).join(', ')}
                   />
-                  {scope.targetBackupHours && (
-                    <InfoRow label="Backup autonomy" value={`${scope.targetBackupHours} hours`} />
-                  )}
                   <InfoRow label="Grid export" value={scope.exportToGrid ? 'Yes — bidirectional metering' : 'No'} />
                 </dl>
               </CardContent>

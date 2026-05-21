@@ -1,12 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { deriveTechnology } from '../tech-scope'
-import type { TechScope } from '../tech-scope'
 
-const base: TechScope = {
-  hasPv: false, hasBess: false, hasWheeling: false,
-  designObjectives: ['SELF_CONSUMPTION'],
-  exportToGrid: false,
-}
+const base = { hasPv: false, hasBess: false, hasWheeling: false }
 
 describe('deriveTechnology', () => {
   it('returns SOLAR_PV when only PV is selected', () => {

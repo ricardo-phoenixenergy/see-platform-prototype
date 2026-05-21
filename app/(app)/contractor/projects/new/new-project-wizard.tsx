@@ -11,10 +11,10 @@ import { ClientPicker, type ClientOption } from '@/components/contractor/client-
 import { createProject } from '@/server/actions/projects'
 import { cn } from '@/lib/utils'
 import {
-  DESIGN_OBJECTIVE_LABELS, BESS_CHEMISTRY_LABELS,
-  MOUNTING_TYPE_LABELS, WHEELING_TYPE_LABELS,
+  DESIGN_OBJECTIVE_LABELS, BESS_CHEMISTRY_LABELS, MOUNTING_TYPE_LABELS,
+  WHEELING_TYPE_LABELS, INVERTER_TOPOLOGY_LABELS,
 } from '@/lib/tech-scope'
-import type { DesignObjective } from '@/lib/tech-scope'
+import type { DesignObjective, PvMountingType } from '@/lib/tech-scope'
 
 // ── Form schema ──────────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ const optNum = z.preprocess(
 )
 
 const schema = z.object({
-  // Step 0
+  // Step 0 — Client & site
   clientRecordId: z.string().optional(),
   clientName: z.string().min(2, 'Client name required'),
   name: z.string().min(3, 'Project name must be at least 3 characters'),
@@ -32,34 +32,37 @@ const schema = z.object({
   city: z.string().min(2, 'City required'),
   province: z.string().min(2, 'Province required'),
 
-  // Step 1 — tech flags
+  // Step 1 — System scope & design
   hasPv: z.boolean(),
   hasBess: z.boolean(),
   hasWheeling: z.boolean(),
 
-  // PV
-  pvCapacityKwp: optNum,
+  // Inverter topology (when hasPv && hasBess)
+  inverterTopology: z.enum(['HYBRID', 'SEPARATE_GTI_PCS']).optional(),
+
+  // Sizing
+  pvInverterKw: optNum,   // hybrid inverter size (HYBRID) or PV GTI size (SEPARATE_GTI_PCS / PV-only)
+  bessInverterKw: optNum, // PCS size (SEPARATE_GTI_PCS or BESS-only)
+
+  // PV details
   pvMountingType: z.array(z.enum(['ROOFTOP', 'GROUND_MOUNT', 'CARPORT'])).optional(),
 
-  // BESS
+  // BESS details
   bessCapacityKwh: optNum,
-  bessPowerKw: optNum,
   bessChemistry: z.enum(['LFP', 'NMC', 'VRLA']).optional(),
-  bessAutonomyHours: optNum,
 
-  // Wheeling
+  // Wheeling details
   wheelingAgreementType: z.enum(['VIRTUAL_NET_METERING', 'OPEN_ACCESS', 'BILATERAL']).optional(),
+  wheelingCapacityKw: optNum,
   wheelingDistanceKm: optNum,
   wheelingTradingPartner: z.string().optional(),
 
-  // Step 2
-  systemSizeKw: z.coerce.number().positive('Must be positive'),
+  // Grid & design
   gridConnectionStatus: z.enum(['GRID_TIED', 'OFF_GRID', 'GRID_TIED_WITH_BACKUP']),
-  designObjectives: z.array(z.enum(['SELF_CONSUMPTION', 'PEAK_SHAVING', 'BACKUP', 'GRID_EXPORT'])),
+  designObjectives: z.array(z.enum(['SELF_CONSUMPTION', 'PEAK_SHAVING', 'BACKUP', 'GRID_EXPORT', 'ARBITRAGE'])),
   exportToGrid: z.boolean(),
-  targetBackupHours: optNum,
 
-  // Step 3
+  // Step 2 — Commercial
   dealStructure: z.enum(['OUTRIGHT', 'PPA', 'LEASE', 'WHEELING_AGREEMENT']),
   clientNeeds: z.string().optional(),
 })
@@ -68,7 +71,7 @@ type FormData = z.infer<typeof schema>
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const STEPS = ['Client & site', 'Tech scope', 'System design', 'Commercial', 'Review']
+const STEPS = ['Client & site', 'System scope & design', 'Commercial', 'Review']
 
 const SA_PROVINCES = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -117,8 +120,8 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
   })
 
   const values = watch()
-
   const anyTechSelected = values.hasPv || values.hasBess || values.hasWheeling
+  const needsTopology = values.hasPv && values.hasBess
 
   async function onSubmit(data: FormData) {
     setError(null)
@@ -135,14 +138,24 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
       return !!(values.clientName?.length >= 2 && values.name?.length >= 3 &&
         values.addressLine?.length >= 2 && values.city?.length >= 2 && values.province?.length >= 2)
     }
-    if (step === 1) return anyTechSelected
-    if (step === 2) {
-      return !!(values.systemSizeKw > 0 && values.designObjectives?.length > 0)
+    if (step === 1) {
+      if (!anyTechSelected) return false
+      if (needsTopology && !values.inverterTopology) return false
+      if (values.hasPv && !values.pvInverterKw) return false
+      if (values.hasBess && !values.hasPv && !values.bessInverterKw) return false
+      if (values.hasBess && values.inverterTopology === 'SEPARATE_GTI_PCS' && !values.bessInverterKw) return false
+      if (!values.designObjectives?.length) return false
+      return true
     }
     return true
   }
 
   const isLastStep = step === STEPS.length - 1
+
+  // Inverter size label changes by topology
+  const pvInverterLabel = needsTopology && values.inverterTopology === 'HYBRID'
+    ? 'Hybrid inverter AC rating (kW)'
+    : 'PV inverter AC rating (kW)'
 
   return (
     <div className="space-y-6">
@@ -239,11 +252,13 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
           </div>
         )}
 
-        {/* ── Step 1: Technology Scope ── */}
+        {/* ── Step 1: System Scope & Design ── */}
         {step === 1 && (
           <div className="space-y-6">
+
+            {/* Technologies */}
             <div className="space-y-3">
-              <p className="text-sm font-medium text-ink-900">Select all technologies included in this project</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Technologies</p>
               {!anyTechSelected && (
                 <p className="text-xs text-danger-500">Select at least one technology to continue.</p>
               )}
@@ -267,105 +282,134 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
               </div>
             </div>
 
-            {/* PV details */}
-            {values.hasPv && (
-              <div className="space-y-3 rounded-md border border-ink-200 p-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Solar PV details</p>
-                <Input label="PV capacity (kWp)" type="number" placeholder="500" {...register('pvCapacityKwp')} />
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-ink-900">Mounting type <span className="text-ink-400 font-normal">(select all that apply)</span></p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    {(Object.entries(MOUNTING_TYPE_LABELS) as [import('@/lib/tech-scope').PvMountingType, string][]).map(([val, label]) => (
-                      <label key={val} className={cn(
-                        'flex items-center gap-2.5 rounded-md border px-3 py-2.5 cursor-pointer transition-colors',
-                        values.pvMountingType?.includes(val) ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
-                      )}>
-                        <Controller
-                          name="pvMountingType"
-                          control={control}
-                          render={({ field }) => (
-                            <input
-                              type="checkbox"
-                              checked={field.value?.includes(val) ?? false}
-                              onChange={e => {
-                                const current = field.value ?? []
-                                field.onChange(
-                                  e.target.checked
-                                    ? [...current, val]
-                                    : current.filter(v => v !== val)
-                                )
-                              }}
-                              className="accent-accent-600"
-                            />
-                          )}
-                        />
-                        <span className="text-sm font-medium text-ink-900">{label}</span>
-                      </label>
-                    ))}
-                  </div>
+            {/* Inverter topology — only when both PV + BESS */}
+            {needsTopology && (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Inverter topology</p>
+                {!values.inverterTopology && (
+                  <p className="text-xs text-danger-500">Select an inverter topology to continue.</p>
+                )}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {(Object.entries(INVERTER_TOPOLOGY_LABELS) as [import('@/lib/tech-scope').InverterTopology, { label: string; sub: string }][]).map(([val, { label, sub }]) => (
+                    <label key={val} className={cn(
+                      'flex items-start gap-3 rounded-md border px-4 py-3 cursor-pointer transition-colors',
+                      values.inverterTopology === val ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
+                    )}>
+                      <input type="radio" value={val} {...register('inverterTopology')} className="mt-0.5 accent-accent-600" />
+                      <div>
+                        <p className="text-sm font-medium text-ink-900">{label}</p>
+                        <p className="text-xs text-ink-500">{sub}</p>
+                      </div>
+                    </label>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* BESS details */}
-            {values.hasBess && (
-              <div className="space-y-3 rounded-md border border-ink-200 p-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Battery Storage details</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input label="Energy capacity (kWh)" type="number" placeholder="200" {...register('bessCapacityKwh')} />
-                  <Input label="Power rating (kW)" type="number" placeholder="100" {...register('bessPowerKw')} />
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-ink-900">Battery chemistry</label>
-                    <select {...register('bessChemistry')} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm focus:border-accent-500 focus:outline-none">
-                      <option value="">Select…</option>
-                      {(Object.entries(BESS_CHEMISTRY_LABELS) as [string, string][]).map(([v, l]) => (
-                        <option key={v} value={v}>{l}</option>
+            {/* Sizing — shown once topology is resolved (or not needed) */}
+            {anyTechSelected && (!needsTopology || values.inverterTopology) && (
+              <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">System sizing</p>
+
+                {/* PV inverter size (PV present) */}
+                {values.hasPv && (
+                  <Input
+                    label={pvInverterLabel}
+                    type="number"
+                    placeholder="450"
+                    hint="AC output rating of the inverter — used for tier tracking"
+                    {...register('pvInverterKw')}
+                  />
+                )}
+
+                {/* PCS size — separate topology or BESS-only */}
+                {values.hasBess && (!values.hasPv || values.inverterTopology === 'SEPARATE_GTI_PCS') && (
+                  <Input
+                    label="BESS PCS AC rating (kW)"
+                    type="number"
+                    placeholder="200"
+                    hint="Power conversion system AC output"
+                    {...register('bessInverterKw')}
+                  />
+                )}
+
+                {/* PV mounting */}
+                {values.hasPv && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-ink-900">Mounting type <span className="text-ink-400 font-normal">(select all that apply)</span></p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {(Object.entries(MOUNTING_TYPE_LABELS) as [PvMountingType, string][]).map(([val, label]) => (
+                        <label key={val} className={cn(
+                          'flex items-center gap-2.5 rounded-md border px-3 py-2.5 cursor-pointer transition-colors',
+                          values.pvMountingType?.includes(val) ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
+                        )}>
+                          <Controller
+                            name="pvMountingType"
+                            control={control}
+                            render={({ field }) => (
+                              <input
+                                type="checkbox"
+                                checked={field.value?.includes(val) ?? false}
+                                onChange={e => {
+                                  const current = field.value ?? []
+                                  field.onChange(
+                                    e.target.checked ? [...current, val] : current.filter(v => v !== val)
+                                  )
+                                }}
+                                className="accent-accent-600"
+                              />
+                            )}
+                          />
+                          <span className="text-sm font-medium text-ink-900">{label}</span>
+                        </label>
                       ))}
-                    </select>
+                    </div>
                   </div>
-                </div>
-                <Input label="Target backup autonomy (hours)" type="number" placeholder="4" hint="Hours of full-load backup required" {...register('bessAutonomyHours')} />
+                )}
+
+                {/* BESS details */}
+                {values.hasBess && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input label="Storage capacity (kWh)" type="number" placeholder="200" {...register('bessCapacityKwh')} />
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-medium text-ink-900">Battery chemistry</label>
+                      <select {...register('bessChemistry')} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm focus:border-accent-500 focus:outline-none">
+                        <option value="">Select…</option>
+                        {(Object.entries(BESS_CHEMISTRY_LABELS) as [string, string][]).map(([v, l]) => (
+                          <option key={v} value={v}>{l}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Wheeling details */}
+                {values.hasWheeling && (
+                  <div className="space-y-3 rounded-md border border-ink-200 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Wheeling / trading details</p>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-medium text-ink-900">Agreement type</label>
+                      <select {...register('wheelingAgreementType')} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm focus:border-accent-500 focus:outline-none">
+                        <option value="">Select…</option>
+                        {(Object.entries(WHEELING_TYPE_LABELS) as [string, string][]).map(([v, l]) => (
+                          <option key={v} value={v}>{l}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input label="Contracted capacity (kW)" type="number" placeholder="500" {...register('wheelingCapacityKw')} />
+                      <Input label="Wheeling distance (km)" type="number" placeholder="15" {...register('wheelingDistanceKm')} />
+                    </div>
+                    <Input label="Trading partner / offtaker" placeholder="e.g. City Power" {...register('wheelingTradingPartner')} />
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Wheeling details */}
-            {values.hasWheeling && (
-              <div className="space-y-3 rounded-md border border-ink-200 p-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Wheeling / Energy trading details</p>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-ink-900">Agreement type</label>
-                  <select {...register('wheelingAgreementType')} className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm focus:border-accent-500 focus:outline-none">
-                    <option value="">Select…</option>
-                    {(Object.entries(WHEELING_TYPE_LABELS) as [string, string][]).map(([v, l]) => (
-                      <option key={v} value={v}>{l}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input label="Wheeling distance (km)" type="number" placeholder="15" {...register('wheelingDistanceKm')} />
-                  <Input label="Trading partner / offtaker" placeholder="e.g. City Power" {...register('wheelingTradingPartner')} />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Step 2: System Sizing & Design Philosophy ── */}
-        {step === 2 && (
-          <div className="space-y-5">
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">System sizing</p>
-              <Input
-                label="Total rated AC capacity (kW)"
-                type="number"
-                placeholder="450"
-                hint="Total AC inverter output — used for tier tracking and milestone selection"
-                {...(errors.systemSizeKw?.message ? { error: errors.systemSizeKw.message } : {})}
-                {...register('systemSizeKw')}
-              />
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-ink-900">Grid connection</label>
+            {/* Grid connection */}
+            {anyTechSelected && (!needsTopology || values.inverterTopology) && (
+              <div className="space-y-3 pt-4 border-t border-ink-100">
+                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Grid connection</p>
                 <div className="space-y-2">
                   {GRID_OPTIONS.map(opt => (
                     <label key={opt.value} className={cn(
@@ -378,66 +422,57 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
                   ))}
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-3 pt-4 border-t border-ink-100">
-              <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Design objectives</p>
-              <p className="text-xs text-ink-500">Select all that apply — these drive the design and O&amp;M approach.</p>
-              <div className="grid grid-cols-1 gap-2">
-                {(Object.entries(DESIGN_OBJECTIVE_LABELS) as [DesignObjective, string][]).map(([val, label]) => (
-                  <label key={val} className={cn(
-                    'flex items-center gap-3 rounded-md border px-4 py-3 cursor-pointer transition-colors',
-                    values.designObjectives?.includes(val) ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
-                  )}>
-                    <Controller
-                      name="designObjectives"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          type="checkbox"
-                          checked={field.value?.includes(val) ?? false}
-                          onChange={e => {
-                            const current = field.value ?? []
-                            field.onChange(
-                              e.target.checked
-                                ? [...current, val]
-                                : current.filter(v => v !== val)
-                            )
-                          }}
-                          className="accent-accent-600"
-                        />
-                      )}
-                    />
-                    <span className="text-sm font-medium text-ink-900">{label}</span>
+            {/* Design objectives */}
+            {anyTechSelected && (!needsTopology || values.inverterTopology) && (
+              <div className="space-y-3 pt-4 border-t border-ink-100">
+                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Design objectives</p>
+                <p className="text-xs text-ink-500">Select all that apply.</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {(Object.entries(DESIGN_OBJECTIVE_LABELS) as [DesignObjective, string][]).map(([val, label]) => (
+                    <label key={val} className={cn(
+                      'flex items-center gap-3 rounded-md border px-4 py-3 cursor-pointer transition-colors',
+                      values.designObjectives?.includes(val) ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
+                    )}>
+                      <Controller
+                        name="designObjectives"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            type="checkbox"
+                            checked={field.value?.includes(val) ?? false}
+                            onChange={e => {
+                              const current = field.value ?? []
+                              field.onChange(
+                                e.target.checked ? [...current, val] : current.filter(v => v !== val)
+                              )
+                            }}
+                            className="accent-accent-600"
+                          />
+                        )}
+                      />
+                      <span className="text-sm font-medium text-ink-900">{label}</span>
+                    </label>
+                  ))}
+                </div>
+                {!values.designObjectives?.length && (
+                  <p className="text-xs text-danger-500">Select at least one design objective.</p>
+                )}
+
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" {...register('exportToGrid')} className="accent-accent-600" />
+                    <span className="text-sm font-medium text-ink-900">Export surplus energy to grid (bidirectional metering)</span>
                   </label>
-                ))}
+                </div>
               </div>
-              {errors.designObjectives && (
-                <p className="text-xs text-danger-500">Select at least one design objective.</p>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3 pt-2 border-t border-ink-100">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" {...register('exportToGrid')} className="accent-accent-600" />
-                <span className="text-sm font-medium text-ink-900">Export surplus energy to grid (bidirectional metering)</span>
-              </label>
-            </div>
-
-            {(values.hasBess || values.gridConnectionStatus === 'OFF_GRID') && (
-              <Input
-                label="Target backup autonomy (hours)"
-                type="number"
-                placeholder="4"
-                hint="Total hours of backup at full site load"
-                {...register('targetBackupHours')}
-              />
             )}
           </div>
         )}
 
-        {/* ── Step 3: Commercial ── */}
-        {step === 3 && (
+        {/* ── Step 2: Commercial ── */}
+        {step === 2 && (
           <div className="space-y-5">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-ink-900">Deal structure</label>
@@ -470,8 +505,8 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
           </div>
         )}
 
-        {/* ── Step 4: Review ── */}
-        {step === 4 && (
+        {/* ── Step 3: Review ── */}
+        {step === 3 && (
           <div className="space-y-4">
             <div className="rounded-md border border-ink-200 divide-y divide-ink-100">
               {[
@@ -486,7 +521,18 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
                     values.hasWheeling && 'Wheeling',
                   ].filter(Boolean).join(' + '),
                 },
-                { label: 'System size', value: `${values.systemSizeKw} kW AC` },
+                ...(values.hasPv && values.hasBess && values.inverterTopology ? [{
+                  label: 'Inverter topology',
+                  value: INVERTER_TOPOLOGY_LABELS[values.inverterTopology].label,
+                }] : []),
+                ...(values.hasPv && values.pvInverterKw ? [{
+                  label: values.inverterTopology === 'HYBRID' ? 'Hybrid inverter' : 'PV inverter',
+                  value: `${values.pvInverterKw} kW AC`,
+                }] : []),
+                ...(values.hasBess && values.bessInverterKw ? [{
+                  label: 'BESS PCS',
+                  value: `${values.bessInverterKw} kW`,
+                }] : []),
                 { label: 'Grid connection', value: GRID_OPTIONS.find(o => o.value === values.gridConnectionStatus)?.label },
                 { label: 'Deal structure', value: DEAL_OPTIONS.find(o => o.value === values.dealStructure)?.label },
                 {
@@ -503,7 +549,7 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
             <div className="rounded-md bg-accent-50 border border-accent-100 px-4 py-3">
               <p className="text-xs text-accent-700 font-medium">Milestone template assigned automatically</p>
               <p className="text-xs text-accent-600 mt-0.5">
-                Based on technology mix · {values.systemSizeKw} kW · {values.dealStructure}
+                Based on technology mix · {values.hasPv ? `${values.pvInverterKw ?? '—'} kW` : `${values.bessInverterKw ?? '—'} kW`} · {values.dealStructure}
               </p>
             </div>
             {error && <p className="text-sm text-danger-500">{error}</p>}

@@ -3,7 +3,8 @@
 export type PvMountingType = 'ROOFTOP' | 'GROUND_MOUNT' | 'CARPORT'
 export type BessChemistry = 'LFP' | 'NMC' | 'VRLA'
 export type WheelingAgreementType = 'VIRTUAL_NET_METERING' | 'OPEN_ACCESS' | 'BILATERAL'
-export type DesignObjective = 'SELF_CONSUMPTION' | 'PEAK_SHAVING' | 'BACKUP' | 'GRID_EXPORT'
+export type DesignObjective = 'SELF_CONSUMPTION' | 'PEAK_SHAVING' | 'BACKUP' | 'GRID_EXPORT' | 'ARBITRAGE'
+export type InverterTopology = 'HYBRID' | 'SEPARATE_GTI_PCS'
 
 export type TechScope = {
   // Technology flags — at least one must be true
@@ -11,35 +12,38 @@ export type TechScope = {
   hasBess: boolean
   hasWheeling: boolean
 
-  // PV details (present when hasPv)
-  pvCapacityKwp?: number
-  pvMountingType?: PvMountingType[] // multi-select: Rooftop + Ground Mount combinations
+  // Inverter topology (only when hasPv && hasBess)
+  inverterTopology?: InverterTopology
 
-  // BESS details (present when hasBess)
+  // Sizing
+  pvInverterKw?: number   // AC rating: hybrid inverter size (HYBRID) or PV GTI size (SEPARATE_GTI_PCS)
+  bessInverterKw?: number // BESS PCS AC rating (SEPARATE_GTI_PCS topology or BESS-only)
+
+  // PV details
+  pvMountingType?: PvMountingType[] // multi-select
+
+  // BESS details
   bessCapacityKwh?: number
-  bessPowerKw?: number
   bessChemistry?: BessChemistry
-  bessAutonomyHours?: number
 
-  // Wheeling (present when hasWheeling)
+  // Wheeling details
   wheelingAgreementType?: WheelingAgreementType
+  wheelingCapacityKw?: number
   wheelingDistanceKm?: number
   wheelingTradingPartner?: string
 
   // Design philosophy (always)
   designObjectives: DesignObjective[]
-  targetBackupHours?: number
   exportToGrid: boolean
 }
 
 export type DerivedTechnology = 'SOLAR_PV' | 'BESS' | 'HYBRID'
 
-export function deriveTechnology(scope: TechScope): DerivedTechnology {
+export function deriveTechnology(scope: Pick<TechScope, 'hasPv' | 'hasBess' | 'hasWheeling'>): DerivedTechnology {
   const primaryCount = [scope.hasPv, scope.hasBess].filter(Boolean).length
   if (primaryCount > 1) return 'HYBRID'
   if (scope.hasBess) return 'BESS'
   if (scope.hasPv) return 'SOLAR_PV'
-  // hasWheeling only — treat as HYBRID (wheeling always accompanies generation in practice)
   if (scope.hasWheeling) return 'HYBRID'
   throw new Error('TechScope must have at least one technology flag set')
 }
@@ -49,6 +53,7 @@ export const DESIGN_OBJECTIVE_LABELS: Record<DesignObjective, string> = {
   PEAK_SHAVING: 'Peak shaving / demand management',
   BACKUP: 'Backup / load-shedding resilience',
   GRID_EXPORT: 'Grid export / revenue generation',
+  ARBITRAGE: 'Energy arbitrage / time-of-use optimisation',
 }
 
 export const BESS_CHEMISTRY_LABELS: Record<BessChemistry, string> = {
@@ -67,4 +72,15 @@ export const WHEELING_TYPE_LABELS: Record<WheelingAgreementType, string> = {
   VIRTUAL_NET_METERING: 'Virtual Net Metering (VNM)',
   OPEN_ACCESS: 'Open Access / Third-party access',
   BILATERAL: 'Bilateral Power Purchase Agreement',
+}
+
+export const INVERTER_TOPOLOGY_LABELS: Record<InverterTopology, { label: string; sub: string }> = {
+  HYBRID: {
+    label: 'Hybrid inverter',
+    sub: 'Single unit handles PV input and BESS interface',
+  },
+  SEPARATE_GTI_PCS: {
+    label: 'Separate GTI + PCS',
+    sub: 'PV grid-tied inverter + dedicated BESS power conversion system',
+  },
 }
