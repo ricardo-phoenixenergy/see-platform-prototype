@@ -1,7 +1,6 @@
 'use client'
 // Client component: sidebar collapse state, active nav detection
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
@@ -51,7 +50,8 @@ export function Sidebar({ navItems, tierInfo }: Props) {
       {/* Header */}
       <div className="flex h-14 items-center justify-between px-4 border-b border-ink-200 flex-shrink-0">
         {collapsed
-          ? <Image src="/brand/see-logo-square.png" alt="SEE" width={32} height={32} className="h-7 w-7 object-contain" priority />
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src="/brand/see-logo-square.png" alt="SEE" className="h-7 w-7 object-contain" />
           : <Wordmark size="sm" />
         }
         <button

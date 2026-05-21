@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 type Props = { className?: string; size?: 'sm' | 'md' | 'lg' }
@@ -11,13 +10,11 @@ const SIZE_CLASS = {
 
 export function Wordmark({ className, size = 'md' }: Props) {
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src="/brand/see-logo-horizontal.png"
       alt="SEE Platform"
-      width={200}
-      height={60}
       className={cn('w-auto object-contain select-none', SIZE_CLASS[size], className)}
-      priority
     />
   )
 }
