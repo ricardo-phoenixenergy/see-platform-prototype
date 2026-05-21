@@ -8,6 +8,8 @@ import {
   DESIGN_OBJECTIVE_LABELS, BESS_CHEMISTRY_LABELS,
   MOUNTING_TYPE_LABELS, WHEELING_TYPE_LABELS, INVERTER_TOPOLOGY_LABELS,
 } from '@/lib/tech-scope'
+import type { SiteInfo } from '@/lib/site-info'
+import { ESKOM_TARIFFS, MUNICIPAL_TARIFFS } from '@/lib/site-info'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -74,6 +76,48 @@ export default async function OverviewPage({ params }: Props) {
           </dl>
         </CardContent>
       </Card>
+
+      {/* Site supply card */}
+      {(() => {
+        if (!project.siteInfo) return null
+        const s = project.siteInfo as SiteInfo
+        const allTariffs = [...ESKOM_TARIFFS, ...MUNICIPAL_TARIFFS]
+        const tariffLabel = s.tariffName
+          ? allTariffs.find(t => t.value === s.tariffName)?.label ?? s.tariffName
+          : null
+        const supplierLabel = s.supplier === 'ESKOM' ? 'Eskom' : (s.municipalityName ?? 'Municipal utility')
+        return (
+          <Card>
+            <CardHeader><CardTitle>Site supply</CardTitle></CardHeader>
+            <CardContent>
+              <dl className="divide-y divide-ink-100">
+                <InfoRow label="Supplier" value={supplierLabel} />
+                {tariffLabel && (
+                  <InfoRow
+                    label="Tariff"
+                    value={
+                      <span className="flex items-center gap-2 justify-end">
+                        {tariffLabel}
+                        {s.isTOU && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-accent-500/10 text-accent-600">TOU</span>
+                        )}
+                      </span>
+                    }
+                  />
+                )}
+                <InfoRow label="NMD" value={`${s.nmdKva} kVA`} />
+                <InfoRow label="Supply voltage" value={s.supplyVoltage} />
+                {s.transformerCapacityKva && (
+                  <InfoRow label="Transformer" value={`${s.transformerCapacityKva} kVA`} />
+                )}
+                {s.accountNumber && (
+                  <InfoRow label="Account ref." value={s.accountNumber} />
+                )}
+              </dl>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Tech scope detail cards — only shown for new projects with techScope JSON */}
       {scope && (
