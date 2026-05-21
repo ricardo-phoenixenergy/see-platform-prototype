@@ -4,17 +4,13 @@ import { getTierInfo } from '@/server/queries/dashboard'
 import { acceptBid } from '@/server/actions/marketplace'
 import { calculateServiceCommission } from '@/lib/service-commission'
 import { auth } from '@/lib/auth'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { Star } from 'lucide-react'
 import Link from 'next/link'
 
 const CATEGORY_LABELS: Record<string, string> = {
   STRUCTURAL_CIVILS: 'Structural & Civils', ENGINEERING: 'Engineering',
   LEGAL: 'Legal', LOGISTICS_PLANT_HIRE: 'Logistics & Plant Hire', FINANCE_INSURANCE: 'Finance & Insurance',
-}
-
-function formatCurrency(cents: number): string {
-  return `R ${(cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
 type Props = { params: Promise<{ id: string }> }

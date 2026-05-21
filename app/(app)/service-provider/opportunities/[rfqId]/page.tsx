@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { BidForm } from '@/components/marketplace/bid-form'
 import { getSpCommissionPercent } from '@/lib/service-commission'
+import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
 type RfqData = {
@@ -21,10 +22,6 @@ type RfqData = {
 type SpProfile = {
   rating: number | null
   ratingCount: number
-}
-
-function formatCurrency(cents: number): string {
-  return `R ${(cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
 export default function OpportunityDetailPage({
