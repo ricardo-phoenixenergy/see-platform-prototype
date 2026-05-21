@@ -20,7 +20,6 @@ const STAGE_FILTERS = [
 const TECH_FILTERS = [
   { value: 'ALL', label: 'All types' },
   { value: 'SOLAR_PV', label: 'Solar PV' },
-  { value: 'WIND', label: 'Wind' },
   { value: 'BESS', label: 'BESS' },
   { value: 'HYBRID', label: 'Hybrid' },
 ]
