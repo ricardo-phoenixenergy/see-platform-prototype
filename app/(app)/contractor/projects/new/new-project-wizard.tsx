@@ -694,6 +694,10 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
                   label: values.inverterTopology === 'HYBRID' ? 'Hybrid inverter' : 'PV inverter',
                   value: `${values.pvInverterKw} kW AC`,
                 }] : []),
+                ...(values.hasPv && values.pvArrayKwp ? [{
+                  label: 'Array size',
+                  value: `${values.pvArrayKwp} kWp DC`,
+                }] : []),
                 ...(values.hasBess && values.bessInverterKw ? [{
                   label: 'BESS PCS',
                   value: `${values.bessInverterKw} kW`,
