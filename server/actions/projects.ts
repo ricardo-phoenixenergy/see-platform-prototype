@@ -479,3 +479,27 @@ export async function updateProject(
     return { ok: false, error: message }
   }
 }
+
+// ── Delete project ─────────────────────────────────────────────────────────────
+
+export async function deleteProject(projectId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await auth()
+  if (!session) return { ok: false, error: 'Not authenticated' }
+
+  const existing = await db.project.findFirst({
+    where: { id: projectId, contractorCompanyId: session.user.companyId, deletedAt: null },
+  })
+  if (!existing) return { ok: false, error: 'Project not found' }
+
+  try {
+    await db.project.update({
+      where: { id: projectId },
+      data: { deletedAt: new Date() },
+    })
+    revalidatePath('/contractor/projects')
+    return { ok: true }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to delete project'
+    return { ok: false, error: message }
+  }
+}

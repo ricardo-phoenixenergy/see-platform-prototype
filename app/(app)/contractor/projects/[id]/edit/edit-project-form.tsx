@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { updateProject } from '@/server/actions/projects'
+import { updateProject, deleteProject } from '@/server/actions/projects'
 import { cn } from '@/lib/utils'
 import {
   DESIGN_OBJECTIVE_LABELS, BESS_CHEMISTRY_LABELS, MOUNTING_TYPE_LABELS,
@@ -80,16 +80,36 @@ const DEAL_OPTIONS = [
 
 type Props = {
   projectId: string
+  projectName: string
   defaultValues: { [K in keyof FormData]?: FormData[K] | undefined }
 }
 
-export function EditProjectForm({ projectId, defaultValues }: Props) {
+export function EditProjectForm({ projectId, projectName, defaultValues }: Props) {
   const router = useRouter()
   const [pendingData, setPendingData] = useState<FormData | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supplierInitialised = useRef(false)
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const deleteMatches = deleteConfirmText === projectName
+
+  async function onDelete() {
+    if (!deleteMatches) return
+    setIsDeleting(true)
+    setDeleteError(null)
+    const result = await deleteProject(projectId)
+    setIsDeleting(false)
+    if (result.ok) {
+      router.push('/contractor/projects')
+    } else {
+      setDeleteError(result.error)
+    }
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const resolvedDefaults: any = {
@@ -557,9 +577,88 @@ export function EditProjectForm({ projectId, defaultValues }: Props) {
             </Button>
           </div>
         </div>
+
+        {/* ── Danger zone ── */}
+        <div className="mt-2 rounded-xl border border-danger-200 p-5 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-danger-500">Danger zone</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-ink-900">Delete this project</p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                Permanently removes the project and all associated milestones, documents, and workspace data. This cannot be undone.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() => { setShowDeleteDialog(true); setDeleteConfirmText(''); setDeleteError(null) }}
+              className="flex-shrink-0 flex items-center gap-1.5"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete project
+            </Button>
+          </div>
+        </div>
       </form>
 
-      {/* ── Confirmation dialog ── */}
+      {/* ── Delete confirmation dialog ── */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-[2px]">
+          <div className="bg-white rounded-xl border border-danger-200 shadow-xl p-6 max-w-md w-full mx-4 space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-full bg-danger-50 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="h-4 w-4 text-danger-500" strokeWidth={2} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-ink-900">Delete this project?</p>
+                <p className="text-xs text-ink-500 mt-1.5 leading-relaxed">
+                  This will permanently delete <span className="font-medium text-ink-900">{projectName}</span> and
+                  all associated data — milestones, documents, communications, and workspace history.
+                  This action <span className="font-medium text-ink-900">cannot be undone</span>.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-xs text-ink-600">
+                To confirm, type <span className="font-semibold text-ink-900">{projectName}</span> below:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && deleteMatches) onDelete() }}
+                placeholder={projectName}
+                className="w-full h-10 rounded-md border border-ink-200 bg-white px-3 text-sm text-ink-900 placeholder:text-ink-300 focus:border-danger-400 focus:outline-none focus:ring-1 focus:ring-danger-300"
+                autoComplete="off"
+              />
+              {deleteError && <p className="text-xs text-danger-500">{deleteError}</p>}
+            </div>
+
+            <div className="flex items-center gap-3 justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => { setShowDeleteDialog(false); setDeleteConfirmText(''); setDeleteError(null) }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={!deleteMatches}
+                loading={isDeleting}
+                onClick={onDelete}
+              >
+                Delete this project
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Save confirmation dialog ── */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-[2px]">
           <div className="bg-white rounded-xl border border-ink-200 shadow-xl p-6 max-w-sm w-full mx-4 space-y-4">

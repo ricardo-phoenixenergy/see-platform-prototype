@@ -58,7 +58,7 @@ export default async function EditProjectPage({ params }: Props) {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6 overflow-y-auto h-full">
-      <EditProjectForm projectId={id} defaultValues={defaultValues} />
+      <EditProjectForm projectId={id} projectName={project.name} defaultValues={defaultValues} />
     </div>
   )
 }
