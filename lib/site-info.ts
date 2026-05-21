@@ -74,11 +74,8 @@ export const SUPPLY_VOLTAGE_OPTIONS: { value: SupplyVoltage; label: string; sub:
 
 // ── Utility functions ─────────────────────────────────────────────────────────
 
-const ALL_TARIFFS: TariffOption[] = [...ESKOM_TARIFFS, ...MUNICIPAL_TARIFFS]
-
 export function isTOUTariff(supplier: ElectricitySupplier, tariffValue: string): boolean {
-  const match = ALL_TARIFFS.find(t => t.value === tariffValue)
-  return match?.isTOU ?? false
+  return getTariffsForSupplier(supplier).some(t => t.value === tariffValue && t.isTOU)
 }
 
 export function getTariffsForSupplier(supplier: ElectricitySupplier): TariffOption[] {
