@@ -222,7 +222,7 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
       <form
           onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !isLastStep && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+            if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
               e.preventDefault()
             }
           }}
@@ -726,7 +726,13 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
             Back
           </Button>
           {isLastStep ? (
-            <Button type="submit" loading={isSubmitting}>Create project</Button>
+            <Button
+              type="button"
+              loading={isSubmitting}
+              onClick={() => handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])()}
+            >
+              Create project
+            </Button>
           ) : (
             <Button type="button" onClick={() => setStep(s => s + 1)} disabled={!canAdvance()}>
               Continue
