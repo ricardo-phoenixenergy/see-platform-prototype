@@ -1,6 +1,9 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { getRfqDetail } from '@/server/queries/marketplace'
+import { getTierInfo } from '@/server/queries/dashboard'
 import { acceptBid } from '@/server/actions/marketplace'
+import { calculateServiceCommission } from '@/lib/service-commission'
+import { auth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { Star } from 'lucide-react'
 import Link from 'next/link'
@@ -10,12 +13,24 @@ const CATEGORY_LABELS: Record<string, string> = {
   LEGAL: 'Legal', LOGISTICS_PLANT_HIRE: 'Logistics & Plant Hire', FINANCE_INSURANCE: 'Finance & Insurance',
 }
 
+function formatCurrency(cents: number): string {
+  return `R ${(cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+}
+
 type Props = { params: Promise<{ id: string }> }
 
 export default async function RfqDetailPage({ params }: Props) {
+  const session = await auth()
+  if (!session) redirect('/login')
+
   const { id } = await params
-  const rfq = await getRfqDetail(id)
+  const [rfq, tierInfo] = await Promise.all([
+    getRfqDetail(id),
+    getTierInfo(session.user.companyId),
+  ])
   if (!rfq) notFound()
+
+  const contractorTier = tierInfo.tier
 
   const isAwarded = rfq.status === 'AWARDED'
 
@@ -61,7 +76,11 @@ export default async function RfqDetailPage({ params }: Props) {
           <p className="text-sm text-ink-500 py-4">No bids yet. Service providers will be notified of your RFQ.</p>
         )}
 
-        {rfq.bids.map((bid) => (
+        {rfq.bids.map((bid) => {
+          const spRating = bid.providerCompany.serviceProviderProfile?.rating ?? null
+          const commission = calculateServiceCommission(bid.amountCents, contractorTier, spRating)
+
+          return (
           <div
             key={bid.id}
             className={cn(
@@ -93,10 +112,16 @@ export default async function RfqDetailPage({ params }: Props) {
                 )}
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-sm font-semibold text-ink-900">
-                  R {(bid.amountCents / 100).toLocaleString('en-ZA')}
-                </p>
-                <p className="text-xs text-ink-400">{bid.estimatedDays} days</p>
+                <div className="flex flex-col gap-0.5 items-end">
+                  <span className="text-xs text-ink-400">SP quote: {formatCurrency(bid.amountCents)}</span>
+                  <span className="text-sm font-medium text-ink-900">
+                    Platform price: {formatCurrency(commission.contractorAmountCents)}
+                  </span>
+                  {commission.tierDiscountPercent > 0 && (
+                    <span className="text-xs text-emerald-600">{commission.tierDiscountPercent}% tier discount applied</span>
+                  )}
+                </div>
+                <p className="text-xs text-ink-400 mt-1">{bid.estimatedDays} days</p>
               </div>
             </div>
 
@@ -114,7 +139,7 @@ export default async function RfqDetailPage({ params }: Props) {
               </form>
             )}
           </div>
-        ))}
+        )})}
 
         {isAwarded && rfq.jobCard && (
           <div className="rounded-md border border-success-500/20 bg-success-50/20 px-4 py-3 flex items-center justify-between gap-4">

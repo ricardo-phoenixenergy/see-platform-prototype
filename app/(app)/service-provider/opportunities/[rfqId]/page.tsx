@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import { BidForm } from '@/components/marketplace/bid-form'
+import { getSpCommissionPercent } from '@/lib/service-commission'
 import Link from 'next/link'
 
 type RfqData = {
@@ -17,6 +18,15 @@ type RfqData = {
   milestone: { name: string } | null
 }
 
+type SpProfile = {
+  rating: number | null
+  ratingCount: number
+}
+
+function formatCurrency(cents: number): string {
+  return `R ${(cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+}
+
 export default function OpportunityDetailPage({
   params,
 }: {
@@ -25,16 +35,19 @@ export default function OpportunityDetailPage({
   const { rfqId } = use(params)
   const [rfq, setRfq] = useState<RfqData | null>(null)
   const [companyId, setCompanyId] = useState('')
+  const [spProfile, setSpProfile] = useState<SpProfile | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const [submittedAmountCents, setSubmittedAmountCents] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/marketplace/rfq/${rfqId}`).then((r) => r.json()),
       fetch('/api/sp/profile').then((r) => r.json()),
-    ]).then(([rfqData, profileData]: [{ rfq: RfqData }, { companyId: string }]) => {
+    ]).then(([rfqData, profileData]: [{ rfq: RfqData }, { companyId: string; profile: SpProfile | null }]) => {
       setRfq(rfqData.rfq)
       setCompanyId(profileData.companyId)
+      setSpProfile(profileData.profile)
       setIsLoading(false)
     }).catch(() => setIsLoading(false))
   }, [rfqId])
@@ -48,6 +61,14 @@ export default function OpportunityDetailPage({
   }
 
   const alreadyBid = rfq.bids.some((b) => b.providerCompany.id === companyId)
+  const spRating = spProfile?.rating ?? null
+  const spCommissionPercent = getSpCommissionPercent(spRating)
+  const isHighRated = spRating !== null && spRating >= 4.5
+
+  function handleBidSuccess(amountCents: number) {
+    setSubmittedAmountCents(amountCents)
+    setSubmitted(true)
+  }
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
@@ -77,14 +98,35 @@ export default function OpportunityDetailPage({
       </div>
 
       {(alreadyBid || submitted) ? (
-        <div className="rounded-md bg-success-50/30 border border-success-500/20 px-4 py-3">
+        <div className="rounded-md bg-success-50/30 border border-success-500/20 px-4 py-3 space-y-2">
           <p className="text-sm font-medium text-success-700">Your bid has been submitted.</p>
-          <p className="text-xs text-ink-500 mt-0.5">You will be notified when the contractor makes a decision.</p>
+          <p className="text-xs text-ink-500">You will be notified when the contractor makes a decision.</p>
+          {submittedAmountCents !== null && (
+            <div className="pt-1 flex flex-col gap-0.5">
+              <span className="text-xs text-ink-400">Your quote: {formatCurrency(submittedAmountCents)}</span>
+              <span className="text-sm font-medium text-ink-900">
+                Expected payout: {formatCurrency(Math.round(submittedAmountCents * (1 - spCommissionPercent / 100)))}
+              </span>
+              <span className="text-xs text-ink-400">
+                Platform fee: {spCommissionPercent}% ({isHighRated ? '★ 4.5+ rate' : 'standard rate'})
+              </span>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-ink-900">Submit your bid</h3>
-          <BidForm rfqId={rfqId} companyId={companyId} onSuccess={() => setSubmitted(true)} />
+          <div className="rounded-md bg-ink-25 border border-ink-100 px-3 py-2.5">
+            <p className="text-xs text-ink-500">
+              Platform fee: <span className="font-medium text-ink-700">{spCommissionPercent}%</span>
+              {isHighRated
+                ? <span className="text-emerald-600 ml-1">(★ 4.5+ rated — reduced rate)</span>
+                : <span className="ml-1">(standard rate)</span>
+              }
+              . Your payout = quoted amount minus platform fee.
+            </p>
+          </div>
+          <BidForm rfqId={rfqId} companyId={companyId} onSuccess={handleBidSuccess} />
         </div>
       )}
     </div>

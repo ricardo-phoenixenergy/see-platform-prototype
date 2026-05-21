@@ -8,7 +8,8 @@ import { submitBid } from '@/server/actions/marketplace'
 type Props = {
   rfqId: string
   companyId: string
-  onSuccess: () => void
+  /** Called with the submitted amount in cents after a successful bid. */
+  onSuccess: (amountCents: number) => void
 }
 
 export function BidForm({ rfqId, companyId, onSuccess }: Props) {
@@ -26,14 +27,16 @@ export function BidForm({ rfqId, companyId, onSuccess }: Props) {
     }
     startTransition(async () => {
       try {
+        // submitBid expects the amount in ZAR (it multiplies by 100 internally)
+        const amountZar = Number(amount)
         await submitBid({
           rfqId,
           companyId,
-          amountCents: Number(amount),
+          amountCents: amountZar,
           proposalText,
           estimatedDays: Number(estimatedDays),
         })
-        onSuccess()
+        onSuccess(Math.round(amountZar * 100))
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to submit bid.')
       }
