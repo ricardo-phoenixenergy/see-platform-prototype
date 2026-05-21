@@ -98,23 +98,21 @@ export async function acceptBid(formData: FormData) {
 
   const contractorCompanyId = bid.rfq.project.contractorCompanyId
 
-  // ── Resolve contractor tier ──────────────────────────────────────────────
-  const [tierRecord, kwAggregate] = await Promise.all([
+  // ── Resolve contractor tier + SP rating in parallel ─────────────────────
+  const [tierRecord, kwAggregate, spProfile] = await Promise.all([
     db.tierStatus.findUnique({ where: { companyId: contractorCompanyId } }),
     db.project.aggregate({
       where: { contractorCompanyId, deletedAt: null },
       _sum: { systemSizeKw: true },
     }),
+    db.serviceProviderProfile.findUnique({
+      where: { companyId: bid.providerCompanyId },
+      select: { rating: true },
+    }),
   ])
   const projectCount = tierRecord?.compliantProjectCount ?? 0
   const totalKw = kwAggregate._sum.systemSizeKw ?? 0
   const contractorTier = getTierForMetrics(projectCount, totalKw)
-
-  // ── Resolve SP rating ────────────────────────────────────────────────────
-  const spProfile = await db.serviceProviderProfile.findUnique({
-    where: { companyId: bid.providerCompanyId },
-    select: { rating: true },
-  })
   const spRating = spProfile?.rating ?? null
 
   // ── Compute commission breakdown ─────────────────────────────────────────
