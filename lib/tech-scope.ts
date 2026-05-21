@@ -17,6 +17,7 @@ export type TechScope = {
 
   // Sizing
   pvInverterKw?: number   // AC rating: hybrid inverter size (HYBRID) or PV GTI size (SEPARATE_GTI_PCS)
+  pvArrayKwp?: number     // DC array size (kWp)
   bessInverterKw?: number // BESS PCS AC rating (SEPARATE_GTI_PCS topology or BESS-only)
 
   // PV details
@@ -65,7 +66,7 @@ export const BESS_CHEMISTRY_LABELS: Record<BessChemistry, string> = {
 export const MOUNTING_TYPE_LABELS: Record<PvMountingType, string> = {
   ROOFTOP: 'Rooftop',
   GROUND_MOUNT: 'Ground mount',
-  CARPORT: 'Carport / shade structure',
+  CARPORT: 'Carport',
 }
 
 export const WHEELING_TYPE_LABELS: Record<WheelingAgreementType, string> = {

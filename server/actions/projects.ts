@@ -42,6 +42,7 @@ const CreateProjectSchema = z.object({
 
   // Sizing
   pvInverterKw: optNum,   // hybrid inverter size (HYBRID) or PV GTI size (SEPARATE_GTI_PCS / PV-only)
+  pvArrayKwp: optNum,     // DC array size (kWp)
   bessInverterKw: optNum, // PCS size (SEPARATE_GTI_PCS or BESS-only)
 
   // PV
@@ -103,6 +104,7 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
     ...(data.hasPv || data.hasBess ? { inverterTopology: data.inverterTopology } : {}),
     ...(data.hasPv ? {
       pvInverterKw: data.pvInverterKw,
+      ...(data.pvArrayKwp ? { pvArrayKwp: data.pvArrayKwp } : {}),
       pvMountingType: data.pvMountingType?.length ? data.pvMountingType : undefined,
     } : {}),
     ...(data.hasBess && (!data.hasPv || data.inverterTopology === 'SEPARATE_GTI_PCS') ? {

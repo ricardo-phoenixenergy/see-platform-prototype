@@ -57,6 +57,7 @@ const schema = z.object({
 
   // Sizing
   pvInverterKw: optNum,   // hybrid inverter size (HYBRID) or PV GTI size (SEPARATE_GTI_PCS / PV-only)
+  pvArrayKwp: optNum,     // DC array size (kWp)
   bessInverterKw: optNum, // PCS size (SEPARATE_GTI_PCS or BESS-only)
 
   // PV details
@@ -92,12 +93,6 @@ const SA_PROVINCES = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
   'Limpopo', 'Mpumalanga', 'Northern Cape', 'North West', 'Western Cape',
 ]
-
-const GRID_OPTIONS = [
-  { value: 'GRID_TIED', label: 'Grid-tied' },
-  { value: 'OFF_GRID', label: 'Off-grid' },
-  { value: 'GRID_TIED_WITH_BACKUP', label: 'Grid-tied with backup' },
-] as const
 
 const DEAL_OPTIONS = [
   { value: 'OUTRIGHT', label: 'Outright purchase' },
@@ -480,13 +475,22 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
 
                 {/* PV inverter size (PV present) */}
                 {values.hasPv && (
-                  <Input
-                    label={pvInverterLabel}
-                    type="number"
-                    placeholder="450"
-                    hint="AC output rating of the inverter — used for tier tracking"
-                    {...register('pvInverterKw')}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label={pvInverterLabel}
+                      type="number"
+                      placeholder="450"
+                      hint="AC output rating of the inverter"
+                      {...register('pvInverterKw')}
+                    />
+                    <Input
+                      label="PV array DC size (kWp)"
+                      type="number"
+                      placeholder="550"
+                      hint="Total nameplate DC capacity of the array"
+                      {...register('pvArrayKwp')}
+                    />
+                  </div>
                 )}
 
                 {/* PCS size — separate topology or BESS-only */}
@@ -573,24 +577,6 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
               </div>
             )}
 
-            {/* Grid connection */}
-            {anyTechSelected && (!needsTopology || values.inverterTopology) && (
-              <div className="space-y-3 pt-4 border-t border-ink-100">
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Grid connection</p>
-                <div className="space-y-2">
-                  {GRID_OPTIONS.map(opt => (
-                    <label key={opt.value} className={cn(
-                      'flex items-center gap-3 rounded-md border px-4 py-3 cursor-pointer transition-colors',
-                      values.gridConnectionStatus === opt.value ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
-                    )}>
-                      <input type="radio" value={opt.value} {...register('gridConnectionStatus')} className="accent-accent-600" />
-                      <span className="text-sm font-medium text-ink-900">{opt.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Design objectives */}
             {anyTechSelected && (!needsTopology || values.inverterTopology) && (
               <div className="space-y-3 pt-4 border-t border-ink-100">
@@ -627,12 +613,13 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
                   <p className="text-xs text-danger-500">Select at least one design objective.</p>
                 )}
 
-                <div className="pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" {...register('exportToGrid')} className="accent-accent-600" />
-                    <span className="text-sm font-medium text-ink-900">Export surplus energy to grid (bidirectional metering)</span>
-                  </label>
-                </div>
+                <label className={cn(
+                  'flex items-center gap-3 rounded-md border px-4 py-3 cursor-pointer transition-colors',
+                  values.exportToGrid ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
+                )}>
+                  <input type="checkbox" {...register('exportToGrid')} className="accent-accent-600" />
+                  <span className="text-sm font-medium text-ink-900">Export surplus energy to grid (bidirectional metering)</span>
+                </label>
               </div>
             )}
           </div>
@@ -704,7 +691,6 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
                   label: 'BESS PCS',
                   value: `${values.bessInverterKw} kW`,
                 }] : []),
-                { label: 'Grid connection', value: GRID_OPTIONS.find(o => o.value === values.gridConnectionStatus)?.label },
                 { label: 'Deal structure', value: DEAL_OPTIONS.find(o => o.value === values.dealStructure)?.label },
                 {
                   label: 'Design objectives',
