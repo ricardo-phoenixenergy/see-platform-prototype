@@ -40,4 +40,9 @@ describe('calculateSavings', () => {
     const r = calculateSavings({ readings, tariffName: 'BUSINESSRATE', nmdKva: 0, hasBess: false })
     expect(r.totalConsumptionKwh).toBe(0)
   })
+
+  it('savedRands is never negative', () => {
+    const r = calculateSavings({ readings: TWO_READINGS, tariffName: 'MEGAFLEX', nmdKva: 500, hasBess: false })
+    expect(r.savedRands).toBeGreaterThanOrEqual(0)
+  })
 })
