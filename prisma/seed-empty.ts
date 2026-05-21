@@ -85,11 +85,6 @@ async function main() {
     create: { companyId: adebayo.id, tier: 'BRONZE', compliantProjectCount: 0 },
   })
 
-  await db.walletBalance.upsert({
-    where: { companyId: adebayo.id },
-    update: {},
-    create: { companyId: adebayo.id, tokens: 0 },
-  })
 
   console.log('✅ Empty seed complete — 4 users, minimal companies and memberships')
 }

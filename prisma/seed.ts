@@ -283,13 +283,11 @@ async function main() {
   await db.membership.upsert({ where: { userId_companyId: { userId: johan.id, companyId: solarace.id } }, update: {}, create: { userId: johan.id, companyId: solarace.id, role: 'CONTRACTOR', isOwner: true } })
   await db.tierStatus.upsert({ where: { companyId: bnsolar.id }, update: {}, create: { companyId: bnsolar.id, tier: 'BRONZE', compliantProjectCount: 1, pointsToNextTier: 9 } })
   await db.tierStatus.upsert({ where: { companyId: solarace.id }, update: {}, create: { companyId: solarace.id, tier: 'GOLD', compliantProjectCount: 22, pointsToNextTier: 3 } })
-  await db.walletBalance.upsert({ where: { companyId: bnsolar.id }, update: {}, create: { companyId: bnsolar.id, tokens: 1200, fiatCents: 0 } })
-  await db.walletBalance.upsert({ where: { companyId: solarace.id }, update: {}, create: { companyId: solarace.id, tokens: 48000, fiatCents: 0 } })
 
   console.log('  ✓ Memberships')
 
   // -------------------------------------------------------------------------
-  // Tier, Wallet, KYC
+  // Tier, KYC
   // -------------------------------------------------------------------------
 
   await db.tierStatus.upsert({
@@ -303,11 +301,6 @@ async function main() {
     },
   })
 
-  await db.walletBalance.upsert({
-    where: { companyId: adebayo.id },
-    update: {},
-    create: { companyId: adebayo.id, tokens: 12400, fiatCents: 0 },
-  })
 
   await db.kycSubmission.upsert({
     where: { id: 'kyc-adebayo' },
