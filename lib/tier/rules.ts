@@ -70,65 +70,6 @@ export function getCashbackRate(tier: Tier): number {
   return TIER_DISCOUNT_RATES[tier]
 }
 
-// Token earn rates — differentiated by review type, not milestone type
-export const TOKEN_AI_REVIEW      = 100   // milestone accepted via AI verification
-export const TOKEN_EXPERT_REVIEW  = 300   // milestone accepted via expert peer review (3×)
-export const TOKEN_PROJECT_DONE   = 1_000 // project reaches OPERATIONAL stage
-
-// Exchange rate: 10 tokens = R1 (i.e. 1 token = R0.10)
-export const TOKENS_PER_RAND = 10
-
-export const TIER_TOKEN_MULTIPLIERS: Record<Tier, number> = {
-  BRONZE:   1,
-  SILVER:   1.5,
-  GOLD:     2,
-  PLATINUM: 3,
-}
-
-export function tokensForMilestone(tier: Tier, isExpertReview: boolean): number {
-  const base = isExpertReview ? TOKEN_EXPERT_REVIEW : TOKEN_AI_REVIEW
-  return Math.round(base * TIER_TOKEN_MULTIPLIERS[tier])
-}
-
-export function tokensToRand(tokens: number): number {
-  return tokens / TOKENS_PER_RAND
-}
-
-export function randToTokens(rand: number): number {
-  return Math.floor(rand * TOKENS_PER_RAND)
-}
-
-// Net discount cap: tier discount + token discount must not exceed 10%.
-// discountedTotalCents is the cart total AFTER tier discount is applied.
-// Returns max tokens burnable without breaching the 10% cap.
-export function maxTokenBurnForHardware(
-  discountedTotalCents: number,
-  tierDiscountPercent: number,
-  tokenBalance: number
-): number {
-  if (tierDiscountPercent >= 10) return 0
-  // remaining room = (10 - tierDiscount)% of the ORIGINAL price
-  // originalCents = discountedCents / (1 - tierDiscount/100)
-  const originalCents = discountedTotalCents / (1 - tierDiscountPercent / 100)
-  const maxSavingsCents = Math.floor(originalCents * (10 - tierDiscountPercent) / 100)
-  return Math.min(Math.floor(maxSavingsCents / TOKENS_PER_RAND), tokenBalance)
-}
-
-// For service payments (no tier discount already applied):
-// cap is simply 10% of the bid amount.
-export function maxTokenBurnForService(
-  bidAmountCents: number,
-  tokenBalance: number
-): number {
-  const maxSavingsCents = Math.floor(bidAmountCents * 10 / 100)
-  return Math.min(Math.floor(maxSavingsCents / TOKENS_PER_RAND), tokenBalance)
-}
-
-// Keep legacy aliases so existing imports don't break
-export const TOKEN_BASE_MILESTONE    = TOKEN_AI_REVIEW
-export const TOKEN_BASE_HARD_GATE    = TOKEN_EXPERT_REVIEW
-export const TOKEN_BASE_PROJECT_DONE = TOKEN_PROJECT_DONE
-
 export function getNextTier(tier: Tier): Tier | null {
   const idx = TIER_ORDER.indexOf(tier)
   return idx < TIER_ORDER.length - 1 ? (TIER_ORDER[idx + 1] ?? null) : null
