@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/brand/wordmark'
 import {
-  Layers, CheckCircle, ShieldCheck, Wrench, Activity, MessageSquare,
+  Layers, CheckCircle, Landmark, Wrench, Activity, MessageSquare,
   ShoppingBag, Building2, Users, ArrowRight, Globe, Minus,
 } from 'lucide-react'
 
@@ -240,10 +240,10 @@ export default function LandingPage() {
                   'Auto-gated milestones from Development through Commissioning to Operational. Each phase has defined document requirements and a structured verification path before progression.',
               },
               {
-                icon: ShieldCheck,
-                title: 'Structured milestone verification',
+                icon: Landmark,
+                title: 'Streamlined project finance & funding',
                 description:
-                  'Submissions go through a two-step review — platform-assisted pre-check followed by admin sign-off. Enterprise plans add AI-assisted analysis to accelerate turnaround.',
+                  'Every project developed on SEE meets bankable-grade quality standards. Structured, compliant, and fully validated documentation reduces due diligence cycles — enabling faster access to project funding and giving investors and lenders the confidence to move quickly.',
               },
               {
                 icon: ShoppingBag,
