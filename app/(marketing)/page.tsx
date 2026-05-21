@@ -284,6 +284,114 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Tier & Token Rewards ── */}
+      <section className="py-24 px-6 max-w-7xl mx-auto">
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold tracking-widest uppercase text-ink-400 mb-3">SEE Token Rewards</p>
+          <h2 className="text-3xl font-semibold tracking-tight text-ink-900">Get rewarded for quality projects.</h2>
+          <p className="mt-3 text-base text-ink-500 max-w-2xl mx-auto leading-relaxed">
+            Every verified milestone earns SEE Tokens. Your tier multiplies every token earned, and
+            tokens redeem against hardware and services — up to 10% off every transaction.
+          </p>
+        </div>
+
+        {/* Token earn mechanics */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-4">
+          {([
+            { tokens: '100 tokens', event: 'per AI-assisted milestone review', detail: 'Platform pre-check pass' },
+            { tokens: '300 tokens', event: 'per expert verification sign-off', detail: 'Admin approval milestone' },
+            { tokens: '1,000 tokens', event: 'per operational project', detail: 'Full project lifecycle complete' },
+          ] as const).map(item => (
+            <div key={item.event} className="rounded-xl border border-ink-200 bg-white p-6">
+              <p className="text-xl font-semibold text-ink-900 mb-1">{item.tokens}</p>
+              <p className="text-sm text-ink-700">{item.event}</p>
+              <p className="text-xs text-ink-400 mt-0.5">{item.detail}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-ink-400 text-center mb-16">
+          10 tokens = R1 in spending power &nbsp;·&nbsp; multiplied by your tier &nbsp;·&nbsp; capped at 10% per transaction
+        </p>
+
+        {/* Tier cards */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-4">
+          {([
+            {
+              name: 'Bronze',
+              color: '#A56A3E',
+              threshold: 'Starting tier',
+              stats: [
+                { value: '2%', label: 'Marketplace discount' },
+                { value: '10%', label: 'O&M commission' },
+                { value: '1×', label: 'Token multiplier' },
+              ],
+              unlocks: ['Full platform access', 'Marketplace bidding', 'Token rewards begin'],
+            },
+            {
+              name: 'Silver',
+              color: '#8B95A0',
+              threshold: '5 projects · 1,000 kW installed',
+              stats: [
+                { value: '5%', label: 'Marketplace discount' },
+                { value: '20%', label: 'O&M commission' },
+                { value: '1.5×', label: 'Token multiplier' },
+              ],
+              unlocks: ['Project leads from platform', 'Elevated token earnings'],
+            },
+            {
+              name: 'Gold',
+              color: '#C9A03E',
+              threshold: '25 projects · 5,000 kW installed',
+              stats: [
+                { value: '8%', label: 'Marketplace discount' },
+                { value: '30%', label: 'O&M commission' },
+                { value: '2×', label: 'Token multiplier' },
+              ],
+              unlocks: ['Access to networking events', 'Priority verification queue'],
+            },
+            {
+              name: 'Platinum',
+              color: '#6E7A8A',
+              threshold: '40 projects · 10,000 kW installed',
+              stats: [
+                { value: '10%', label: 'Marketplace discount' },
+                { value: '40%', label: 'O&M commission' },
+                { value: '3×', label: 'Token multiplier' },
+              ],
+              unlocks: ['SEE Certified badge', 'Dedicated premium support'],
+            },
+          ] as const).map((tier) => (
+            <div key={tier.name} className="rounded-xl border border-ink-200 bg-white p-6 flex flex-col gap-5">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: tier.color }} />
+                  <p className="text-sm font-semibold text-ink-900">{tier.name}</p>
+                </div>
+                <p className="text-xs text-ink-400">{tier.threshold}</p>
+              </div>
+
+              <div className="space-y-2.5">
+                {tier.stats.map(s => (
+                  <div key={s.label} className="flex items-baseline justify-between">
+                    <p className="text-xs text-ink-400">{s.label}</p>
+                    <p className="text-sm font-semibold text-ink-900">{s.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-4 border-t border-ink-100 space-y-2">
+                {tier.unlocks.map(u => (
+                  <div key={u} className="flex items-start gap-2">
+                    <CheckCircle className="h-3.5 w-3.5 text-ink-300 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                    <p className="text-xs text-ink-500">{u}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ── Pricing ── */}
       <section className="py-24 px-6 max-w-7xl mx-auto">
         <div className="text-center mb-16">
