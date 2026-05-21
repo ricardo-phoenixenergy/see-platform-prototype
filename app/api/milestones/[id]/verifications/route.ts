@@ -33,7 +33,6 @@ export async function GET(
               type: true,
               status: true,
               qualityRating: true,
-              costTokens: true,
               findings: true,
               notes: true,
               completedAt: true,

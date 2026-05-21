@@ -89,7 +89,6 @@ export async function getSubmissionDetail(id: string) {
           qualityRating: true,
           findings: true,
           notes: true,
-          costTokens: true,
           completedAt: true,
         },
         orderBy: { createdAt: 'asc' },
