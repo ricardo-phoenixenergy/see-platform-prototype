@@ -461,6 +461,68 @@ async function main() {
     include: { items: true },
   })
 
+  await db.milestoneTemplate.upsert({
+    where: { id: 'template-bess-ci' },
+    update: {},
+    create: {
+      id: 'template-bess-ci',
+      name: 'BESS C&I (Standalone)',
+      version: 1,
+      isActive: true,
+      technology: 'BESS',
+      minSizeKw: null,
+      maxSizeKw: null,
+      dealStructure: ['OUTRIGHT', 'PPA', 'LEASE'],
+      items: {
+        create: [
+          {
+            order: 1, phase: 'DEVELOPMENT', name: 'Load & Demand Analysis',
+            description: 'Detailed load profile analysis and peak demand characterisation to size the BESS correctly.',
+            isHardGate: true, estimatedDays: 10,
+            requiredArtefacts: [{ name: 'Load Analysis Report', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 2, phase: 'DEVELOPMENT', name: 'BESS Engineering Study',
+            description: 'Sizing study, battery chemistry selection, and power conversion system specification.',
+            isHardGate: true, estimatedDays: 14,
+            requiredArtefacts: [{ name: 'BESS Engineering Report', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 3, phase: 'DEVELOPMENT', name: 'Grid / Utility Application',
+            description: 'Grid connection or embedded generation application to the relevant authority (Eskom or municipality).',
+            isHardGate: true, estimatedDays: 45,
+            requiredArtefacts: [{ name: 'Grid Application', allowedTypes: ['application/pdf'] }, { name: 'Approval Letter', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 4, phase: 'DEVELOPMENT', name: 'BESS Safety & Compliance Review',
+            description: 'Safety study covering thermal runaway, fire suppression, and SANS 10142 / IEC 62619 compliance.',
+            isHardGate: true, estimatedDays: 14,
+            requiredArtefacts: [{ name: 'BESS Safety Study', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 5, phase: 'CONSTRUCTION', name: 'BESS Installation',
+            description: 'Physical installation of battery modules, PCS, and BMS.',
+            isHardGate: false, estimatedDays: 14,
+            requiredArtefacts: [{ name: 'Installation Progress Photos', allowedTypes: ['image/jpeg', 'image/png'] }],
+          },
+          {
+            order: 6, phase: 'COMMISSIONING', name: 'BESS Commissioning & Protection Testing',
+            description: 'BMS commissioning, protection relay testing, and grid synchronisation test.',
+            isHardGate: true, estimatedDays: 5,
+            requiredArtefacts: [{ name: 'Commissioning Report', allowedTypes: ['application/pdf'] }, { name: 'CoC', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 7, phase: 'OPERATIONAL', name: 'Operational Handover',
+            description: 'Handover to client including O&M manual, warranty documentation, and BMS access credentials.',
+            isHardGate: true, estimatedDays: 2,
+            requiredArtefacts: [{ name: 'Handover Pack', allowedTypes: ['application/pdf'] }],
+          },
+        ],
+      },
+    },
+    include: { items: true },
+  })
+
   console.log('  ✓ Milestone templates')
 
   // -------------------------------------------------------------------------
