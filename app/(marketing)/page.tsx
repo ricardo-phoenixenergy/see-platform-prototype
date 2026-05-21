@@ -1,52 +1,374 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/brand/wordmark'
+import {
+  Layers, CheckCircle, ShieldCheck, Wrench, Activity, MessageSquare,
+  ShoppingBag, Building2, Users, ArrowRight, Globe,
+} from 'lucide-react'
+
+// ── Plan feature lists ────────────────────────────────────────────────────────
+
+const STARTER_FEATURES = [
+  'Up to 3 active projects',
+  'Full milestone lifecycle tracking',
+  'Document management & submission',
+  'Communications workspace per project',
+  'Basic milestone verification',
+  'Client & site management',
+]
+
+const PROFESSIONAL_FEATURES = [
+  'Unlimited active projects',
+  'Everything in Starter',
+  'Hardware procurement marketplace',
+  'Service marketplace with escrow payments',
+  'O&M monitoring dashboards',
+  'Client portal management',
+  'Tier rewards & token economy',
+  'Priority support',
+]
+
+const ENTERPRISE_FEATURES = [
+  'Everything in Professional',
+  'SEE.AI assistant & AI-assisted verification',
+  'AI-powered prescriptive maintenance',
+  'API access & scheduled data exports',
+  'Dedicated account manager',
+  'White-label client portal',
+  'Enterprise multi-site dashboards',
+  'Custom integrations',
+]
+
+const SP_FEATURES = [
+  'Browse & bid on RFQs in your category',
+  'Job card & deliverable management',
+  'Escrow-protected payment flow',
+  'Company profile & client reviews',
+  'Service area targeting',
+]
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function FeatureItem({ text }: { text: string }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <CheckCircle className="h-4 w-4 text-ink-400 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+      <span className="text-sm text-ink-600">{text}</span>
+    </li>
+  )
+}
+
+function PlanCard({
+  badge, title, subtitle, features, cta, highlight = false,
+}: {
+  badge?: string
+  title: string
+  subtitle: string
+  features: string[]
+  cta: string
+  highlight?: boolean
+}) {
+  return (
+    <div className={`relative flex flex-col rounded-xl border p-8 ${
+      highlight
+        ? 'border-ink-900 bg-white shadow-lg'
+        : 'border-ink-200 bg-white'
+    }`}>
+      {badge && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-ink-900 px-3 py-0.5 text-[11px] font-semibold text-white tracking-wide">
+          {badge}
+        </span>
+      )}
+      <div className="mb-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-ink-400 mb-1">{title}</p>
+        <p className="text-sm text-ink-600 leading-snug">{subtitle}</p>
+      </div>
+      <ul className="space-y-3 flex-1 mb-8">
+        {features.map(f => <FeatureItem key={f} text={f} />)}
+      </ul>
+      <Link
+        href="/login"
+        className={`inline-flex h-10 items-center justify-center rounded-md text-sm font-medium transition-colors ${
+          highlight
+            ? 'bg-ink-900 text-white hover:bg-ink-800'
+            : 'border border-ink-200 text-ink-900 hover:bg-ink-50'
+        }`}
+      >
+        {cta}
+      </Link>
+    </div>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen bg-ink-25 flex flex-col overflow-hidden">
-      {/* Subtle dot lattice background */}
+    <div className="relative bg-white text-ink-900 overflow-x-hidden">
+
+      {/* Dot lattice — hero only */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        className="pointer-events-none absolute inset-0 h-[100vh] opacity-[0.035]"
         style={{
           backgroundImage: 'radial-gradient(circle, #14161A 1px, transparent 1px)',
           backgroundSize: '28px 28px',
         }}
       />
 
-      <header className="relative z-10 px-8 pt-8">
+      {/* ── Header ── */}
+      <header className="relative z-20 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
         <Wordmark size="md" />
-      </header>
-
-      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <p className="mb-3 text-xs font-medium tracking-widest uppercase text-ink-500">
-          SEE Platform
-        </p>
-        <h1 className="mb-6 max-w-2xl text-4xl font-semibold tracking-tight text-ink-900 leading-[1.2]">
-          The operating system for<br />energy project developers.
-        </h1>
-        <p className="mb-8 max-w-md text-base text-ink-600 leading-relaxed">
-          From development to operations — one platform for every milestone,
-          verification, and stakeholder in a renewable energy project.
-        </p>
         <div className="flex items-center gap-3">
           <Link
             href="/login"
-            className="inline-flex h-12 items-center justify-center rounded-md bg-ink-900 px-6 text-base font-medium text-white transition-colors hover:bg-ink-800 focus-visible:outline-none"
+            className="text-sm font-medium text-ink-600 hover:text-ink-900 transition-colors"
           >
-            Request access
+            Sign in
           </Link>
           <Link
             href="/login"
-            className="inline-flex h-12 items-center justify-center rounded-md border border-ink-300 bg-white px-6 text-base font-medium text-ink-900 transition-colors hover:bg-ink-50 focus-visible:outline-none"
+            className="inline-flex h-9 items-center rounded-md bg-ink-900 px-4 text-sm font-medium text-white hover:bg-ink-800 transition-colors"
+          >
+            Request access
+          </Link>
+        </div>
+      </header>
+
+      {/* ── Hero ── */}
+      <section className="relative z-10 flex flex-col items-center text-center px-6 pt-20 pb-28 max-w-4xl mx-auto">
+        <p className="mb-4 text-xs font-semibold tracking-widest uppercase text-ink-400">
+          SEE Platform
+        </p>
+        <h1 className="mb-6 text-5xl font-semibold tracking-tight text-ink-900 leading-[1.12]">
+          The operating system<br />for energy project developers.
+        </h1>
+        <p className="mb-10 max-w-xl text-lg text-ink-500 leading-relaxed">
+          From site assessment to long-term O&amp;M — one platform managing every milestone,
+          stakeholder, and payment across the full lifecycle of a C&amp;I renewable energy project.
+        </p>
+        <div className="flex items-center gap-3 flex-wrap justify-center">
+          <Link
+            href="/login"
+            className="inline-flex h-12 items-center gap-2 rounded-md bg-ink-900 px-6 text-base font-medium text-white hover:bg-ink-800 transition-colors"
+          >
+            Request access
+            <ArrowRight className="h-4 w-4" strokeWidth={2} />
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex h-12 items-center rounded-md border border-ink-200 px-6 text-base font-medium text-ink-900 hover:bg-ink-50 transition-colors"
           >
             Sign in
           </Link>
         </div>
-      </main>
+      </section>
 
-      <footer className="relative z-10 px-8 py-6 text-xs text-ink-400">
-        © 2026 SEE Platform. A joint venture between MW-GS Pty Ltd and Phoenix Energy Solutions.
+      {/* ── Stats bar ── */}
+      <div className="border-y border-ink-100 bg-ink-25 py-6 px-6">
+        <div className="max-w-5xl mx-auto grid grid-cols-2 gap-6 sm:grid-cols-4 text-center">
+          {[
+            { value: '240+', label: 'Projects managed' },
+            { value: '18 MW', label: 'Installed capacity tracked' },
+            { value: '160+', label: 'Milestones verified' },
+            { value: '48 hrs', label: 'Average verification turnaround' },
+          ].map(s => (
+            <div key={s.label}>
+              <p className="text-2xl font-semibold text-ink-900 tracking-tight">{s.value}</p>
+              <p className="text-xs text-ink-500 mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Who it's for ── */}
+      <section className="py-24 px-6 max-w-7xl mx-auto">
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold tracking-widest uppercase text-ink-400 mb-3">Built for the whole ecosystem</p>
+          <h2 className="text-3xl font-semibold tracking-tight text-ink-900">One platform. Three roles.</h2>
+        </div>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          {[
+            {
+              icon: Building2,
+              role: 'EPC Contractor',
+              headline: 'Manage every project from development to handover.',
+              description:
+                'Track milestones, manage documents, procure hardware, subcontract services, and give your clients a branded monitoring experience — all from a single dashboard.',
+            },
+            {
+              icon: Wrench,
+              role: 'Service Provider',
+              headline: 'Find work. Deliver. Get paid securely.',
+              description:
+                'Discover RFQs in your service category, submit competitive bids, manage job cards and deliverables, and receive payment through a platform-backed escrow system.',
+            },
+            {
+              icon: Activity,
+              role: 'End Client',
+              headline: 'Your energy asset, always visible.',
+              description:
+                'Access live plant performance dashboards, O&M schedules, project documents, and alerts — from a clean client portal managed by your EPC.',
+            },
+          ].map(({ icon: Icon, role, headline, description }) => (
+            <div key={role} className="rounded-xl border border-ink-200 p-8 flex flex-col gap-4">
+              <div className="h-10 w-10 rounded-lg bg-ink-100 flex items-center justify-center">
+                <Icon className="h-5 w-5 text-ink-600" strokeWidth={1.5} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-ink-400 mb-1">{role}</p>
+                <p className="text-base font-semibold text-ink-900 leading-snug mb-2">{headline}</p>
+                <p className="text-sm text-ink-500 leading-relaxed">{description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Features ── */}
+      <section className="bg-ink-25 border-y border-ink-100 py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-xs font-semibold tracking-widest uppercase text-ink-400 mb-3">Platform capabilities</p>
+            <h2 className="text-3xl font-semibold tracking-tight text-ink-900">Everything a project needs to close.</h2>
+          </div>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                icon: Layers,
+                title: 'Milestone lifecycle management',
+                description:
+                  'Auto-gated milestones from Development through Commissioning to Operational. Each phase has defined document requirements and a structured verification path before progression.',
+              },
+              {
+                icon: ShieldCheck,
+                title: 'Structured milestone verification',
+                description:
+                  'Submissions go through a two-step review — platform-assisted pre-check followed by admin sign-off. Enterprise plans add AI-assisted analysis to accelerate turnaround.',
+              },
+              {
+                icon: ShoppingBag,
+                title: 'Hardware procurement marketplace',
+                description:
+                  'Browse verified suppliers, compare specifications, and purchase equipment directly. Tier discounts and token rewards reduce net cost for high-volume contractors.',
+              },
+              {
+                icon: Users,
+                title: 'Service marketplace with escrow',
+                description:
+                  'Post RFQs, receive bids from qualified service providers, and award contracts. Payment is held in escrow and released only when deliverables are approved.',
+              },
+              {
+                icon: Activity,
+                title: 'O&M monitoring & dashboards',
+                description:
+                  'Live production, battery state-of-charge, consumption, and irradiance charts for every operational site. Clients access their own portal with a clean, branded view.',
+              },
+              {
+                icon: MessageSquare,
+                title: 'Project communications workspace',
+                description:
+                  'Every project gets a structured comms workspace with default channels — General, Site Updates, Client, and Admin — keeping all stakeholders aligned in one place.',
+              },
+            ].map(({ icon: Icon, title, description }) => (
+              <div key={title} className="flex gap-5">
+                <div className="h-9 w-9 rounded-lg bg-white border border-ink-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon className="h-4 w-4 text-ink-600" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-ink-900 mb-1">{title}</p>
+                  <p className="text-sm text-ink-500 leading-relaxed">{description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section className="py-24 px-6 max-w-7xl mx-auto">
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold tracking-widest uppercase text-ink-400 mb-3">Plans</p>
+          <h2 className="text-3xl font-semibold tracking-tight text-ink-900">Choose what fits your scale.</h2>
+          <p className="mt-3 text-base text-ink-500 max-w-lg mx-auto">
+            All contractor plans include the full project workflow. Upgrade as your portfolio grows.
+          </p>
+        </div>
+
+        {/* Contractor plans */}
+        <div className="mb-5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-ink-400 mb-6">For EPC contractors</p>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <PlanCard
+              title="Starter"
+              subtitle="Get started at no cost. Build your first projects and learn the platform."
+              features={STARTER_FEATURES}
+              cta="Get started free"
+            />
+            <PlanCard
+              badge="Most popular"
+              title="Professional"
+              subtitle="For active EPCs managing a growing portfolio. No AI features."
+              features={PROFESSIONAL_FEATURES}
+              cta="Request access"
+              highlight
+            />
+            <PlanCard
+              title="Enterprise"
+              subtitle="For established developers. Includes AI, API access, and a dedicated account manager."
+              features={ENTERPRISE_FEATURES}
+              cta="Contact us"
+            />
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-ink-100 my-10" />
+
+        {/* SP plan */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-ink-400 mb-6">For service providers</p>
+          <div className="max-w-sm">
+            <PlanCard
+              title="Service Provider"
+              subtitle="For specialist subcontractors looking to work within the SEE ecosystem."
+              features={SP_FEATURES}
+              cta="Join as a service provider"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Final CTA ── */}
+      <section className="bg-ink-900 py-20 px-6 text-center">
+        <div className="max-w-2xl mx-auto">
+          <Globe className="h-8 w-8 text-ink-400 mx-auto mb-6" strokeWidth={1.5} />
+          <h2 className="text-3xl font-semibold text-white tracking-tight mb-4">
+            Ready to streamline your project pipeline?
+          </h2>
+          <p className="text-base text-ink-400 mb-8 leading-relaxed">
+            Join contractors already managing their renewable energy portfolios on the SEE Platform.
+          </p>
+          <div className="flex items-center gap-3 justify-center flex-wrap">
+            <Link
+              href="/login"
+              className="inline-flex h-12 items-center gap-2 rounded-md bg-white px-6 text-base font-medium text-ink-900 hover:bg-ink-100 transition-colors"
+            >
+              Request access
+              <ArrowRight className="h-4 w-4" strokeWidth={2} />
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex h-12 items-center rounded-md border border-ink-700 px-6 text-base font-medium text-ink-300 hover:border-ink-600 hover:text-white transition-colors"
+            >
+              Sign in
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="px-8 py-6 text-xs text-ink-400 text-center border-t border-ink-100">
+        © 2026 SEE Platform. All rights reserved.
       </footer>
     </div>
   )
