@@ -12,7 +12,7 @@ const SIZE_CLASS = {
 export function Wordmark({ className, size = 'md' }: Props) {
   return (
     <Image
-      src="/brand/SEE logo - Horizontal.png"
+      src="/brand/see-logo-horizontal.png"
       alt="SEE Platform"
       width={200}
       height={60}

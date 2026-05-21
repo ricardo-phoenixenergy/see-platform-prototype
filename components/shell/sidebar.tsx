@@ -51,7 +51,7 @@ export function Sidebar({ navItems, tierInfo }: Props) {
       {/* Header */}
       <div className="flex h-14 items-center justify-between px-4 border-b border-ink-200 flex-shrink-0">
         {collapsed
-          ? <Image src="/brand/SEE logo - Square.png" alt="SEE" width={32} height={32} className="h-7 w-7 object-contain" priority />
+          ? <Image src="/brand/see-logo-square.png" alt="SEE" width={32} height={32} className="h-7 w-7 object-contain" priority />
           : <Wordmark size="sm" />
         }
         <button
