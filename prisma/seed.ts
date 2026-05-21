@@ -523,6 +523,136 @@ async function main() {
     include: { items: true },
   })
 
+  await db.milestoneTemplate.upsert({
+    where: { id: 'template-hybrid-ci-ppa' },
+    update: {},
+    create: {
+      id: 'template-hybrid-ci-ppa',
+      name: 'Hybrid (PV + BESS) C&I PPA',
+      version: 1,
+      isActive: true,
+      technology: 'HYBRID',
+      minSizeKw: null,
+      maxSizeKw: null,
+      dealStructure: ['PPA'],
+      items: {
+        create: [
+          {
+            order: 1, phase: 'DEVELOPMENT', name: 'Site Assessment Report',
+            description: 'Geotechnical, structural, and irradiance assessment covering both PV array placement and BESS installation area.',
+            isHardGate: true, estimatedDays: 14,
+            requiredArtefacts: [{ name: 'Site Assessment Report', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 2, phase: 'DEVELOPMENT', name: 'Structural Engineering Report',
+            description: 'Roof/ground mounting structural sign-off for PV array. Includes civil works specification for BESS enclosure if applicable.',
+            isHardGate: true, estimatedDays: 21,
+            requiredArtefacts: [{ name: 'Structural Report', allowedTypes: ['application/pdf'] }, { name: 'Engineering Letter', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 3, phase: 'DEVELOPMENT', name: 'BESS Safety & Compliance Review',
+            description: 'Safety study for battery system: thermal runaway, fire suppression, and SANS/IEC compliance.',
+            isHardGate: true, estimatedDays: 14,
+            requiredArtefacts: [{ name: 'BESS Safety Study', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 4, phase: 'DEVELOPMENT', name: 'Grid / Utility Application',
+            description: 'Embedded generation application to the relevant authority. NMD and supply voltage determine the correct form and approving body.',
+            isHardGate: true, estimatedDays: 60,
+            requiredArtefacts: [{ name: 'Grid Application', allowedTypes: ['application/pdf'] }, { name: 'Approval Letter', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 5, phase: 'FINANCING', name: 'Financial Close Documentation',
+            description: 'Signed PPA agreement, financial model, and bank/funder confirmation letter.',
+            isHardGate: true, estimatedDays: 30,
+            requiredArtefacts: [{ name: 'Signed PPA', allowedTypes: ['application/pdf'] }, { name: 'Bank Confirmation', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 6, phase: 'CONSTRUCTION', name: 'Construction Commencement',
+            description: 'Site handover and commencement certificate. PV and BESS installation begin.',
+            isHardGate: false, estimatedDays: 5,
+            requiredArtefacts: [{ name: 'Commencement Certificate', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 7, phase: 'COMMISSIONING', name: 'CoC & System Commissioning',
+            description: 'Certificate of Compliance, PV commissioning report, BESS commissioning report, and protection relay test results.',
+            isHardGate: true, estimatedDays: 7,
+            requiredArtefacts: [{ name: 'CoC', allowedTypes: ['application/pdf'] }, { name: 'PV Commissioning Report', allowedTypes: ['application/pdf'] }, { name: 'BESS Commissioning Report', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 8, phase: 'OPERATIONAL', name: 'Operational Handover',
+            description: 'Full handover pack including O&M manuals, warranty documents, BMS credentials, and monitoring system setup.',
+            isHardGate: true, estimatedDays: 3,
+            requiredArtefacts: [{ name: 'Handover Pack', allowedTypes: ['application/pdf'] }],
+          },
+        ],
+      },
+    },
+    include: { items: true },
+  })
+
+  await db.milestoneTemplate.upsert({
+    where: { id: 'template-hybrid-ci-outright' },
+    update: {},
+    create: {
+      id: 'template-hybrid-ci-outright',
+      name: 'Hybrid (PV + BESS) C&I Outright / Lease / Wheeling',
+      version: 1,
+      isActive: true,
+      technology: 'HYBRID',
+      minSizeKw: null,
+      maxSizeKw: null,
+      dealStructure: ['OUTRIGHT', 'LEASE', 'WHEELING_AGREEMENT'],
+      items: {
+        create: [
+          {
+            order: 1, phase: 'DEVELOPMENT', name: 'Site Assessment Report',
+            description: 'Geotechnical, structural, and irradiance assessment covering both PV array placement and BESS installation area.',
+            isHardGate: true, estimatedDays: 14,
+            requiredArtefacts: [{ name: 'Site Assessment Report', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 2, phase: 'DEVELOPMENT', name: 'Structural Engineering Report',
+            description: 'Roof/ground mounting structural sign-off for PV array.',
+            isHardGate: true, estimatedDays: 21,
+            requiredArtefacts: [{ name: 'Structural Report', allowedTypes: ['application/pdf'] }, { name: 'Engineering Letter', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 3, phase: 'DEVELOPMENT', name: 'BESS Safety & Compliance Review',
+            description: 'Safety study: thermal runaway, fire suppression, SANS/IEC compliance.',
+            isHardGate: true, estimatedDays: 14,
+            requiredArtefacts: [{ name: 'BESS Safety Study', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 4, phase: 'DEVELOPMENT', name: 'Grid / Utility Application',
+            description: 'Embedded generation application to the relevant authority.',
+            isHardGate: true, estimatedDays: 45,
+            requiredArtefacts: [{ name: 'Grid Application', allowedTypes: ['application/pdf'] }, { name: 'Approval Letter', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 5, phase: 'CONSTRUCTION', name: 'Installation',
+            description: 'PV array and BESS installation. Progress documentation required at 50% and 100% completion.',
+            isHardGate: false, estimatedDays: 30,
+            requiredArtefacts: [{ name: 'Progress Photos', allowedTypes: ['image/jpeg', 'image/png'] }],
+          },
+          {
+            order: 6, phase: 'COMMISSIONING', name: 'CoC & System Commissioning',
+            description: 'Certificate of Compliance, PV commissioning report, and BESS commissioning report.',
+            isHardGate: true, estimatedDays: 7,
+            requiredArtefacts: [{ name: 'CoC', allowedTypes: ['application/pdf'] }, { name: 'PV Commissioning Report', allowedTypes: ['application/pdf'] }, { name: 'BESS Commissioning Report', allowedTypes: ['application/pdf'] }],
+          },
+          {
+            order: 7, phase: 'OPERATIONAL', name: 'Operational Handover',
+            description: 'Full handover pack including O&M manuals, warranty documents, BMS credentials.',
+            isHardGate: true, estimatedDays: 2,
+            requiredArtefacts: [{ name: 'Handover Pack', allowedTypes: ['application/pdf'] }],
+          },
+        ],
+      },
+    },
+    include: { items: true },
+  })
+
   console.log('  ✓ Milestone templates')
 
   // -------------------------------------------------------------------------
