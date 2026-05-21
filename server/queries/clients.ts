@@ -4,7 +4,7 @@ export async function getClients(contractorCompanyId: string) {
   return db.clientRecord.findMany({
     where: { contractorCompanyId },
     include: {
-      _count: { select: { projects: true } },
+      _count: { select: { projects: { where: { deletedAt: null } } } },
     },
     orderBy: { name: 'asc' },
   })

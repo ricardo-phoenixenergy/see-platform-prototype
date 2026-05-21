@@ -497,6 +497,7 @@ export async function deleteProject(projectId: string): Promise<{ ok: true } | {
       data: { deletedAt: new Date() },
     })
     revalidatePath('/contractor/projects')
+    revalidatePath('/contractor/clients')
     return { ok: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to delete project'
