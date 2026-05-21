@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,6 +15,11 @@ import {
   WHEELING_TYPE_LABELS, INVERTER_TOPOLOGY_LABELS,
 } from '@/lib/tech-scope'
 import type { DesignObjective, PvMountingType } from '@/lib/tech-scope'
+import {
+  ESKOM_TARIFFS, MUNICIPAL_TARIFFS, SA_MUNICIPALITIES,
+  SUPPLY_VOLTAGE_OPTIONS, getTariffsForSupplier, guidanceForSupplier, isTOUTariff,
+} from '@/lib/site-info'
+import type { ElectricitySupplier, SupplyVoltage } from '@/lib/site-info'
 
 // ── Form schema ──────────────────────────────────────────────────────────────
 
@@ -32,7 +37,17 @@ const schema = z.object({
   city: z.string().min(2, 'City required'),
   province: z.string().min(2, 'Province required'),
 
-  // Step 1 — System scope & design
+  // Step 1 — Tariff & grid supply
+  supplier: z.enum(['ESKOM', 'MUNICIPAL']),
+  municipalityName: z.string().optional(),
+  tariffName: z.string().optional(),
+  isTOU: z.boolean(),
+  nmdKva: z.coerce.number().positive('NMD is required'),
+  supplyVoltage: z.enum(['LV', 'MV', 'HV']),
+  transformerCapacityKva: optNum,
+  accountNumber: z.string().optional(),
+
+  // Step 2 — System scope & design
   hasPv: z.boolean(),
   hasBess: z.boolean(),
   hasWheeling: z.boolean(),
@@ -62,7 +77,7 @@ const schema = z.object({
   designObjectives: z.array(z.enum(['SELF_CONSUMPTION', 'PEAK_SHAVING', 'BACKUP', 'GRID_EXPORT', 'ARBITRAGE'])),
   exportToGrid: z.boolean(),
 
-  // Step 2 — Commercial
+  // Step 3 — Commercial
   dealStructure: z.enum(['OUTRIGHT', 'PPA', 'LEASE', 'WHEELING_AGREEMENT']),
   clientNeeds: z.string().optional(),
 })
@@ -71,7 +86,7 @@ type FormData = z.infer<typeof schema>
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const STEPS = ['Client & site', 'System scope & design', 'Commercial', 'Review']
+const STEPS = ['Client & site', 'Tariff & grid supply', 'System scope & design', 'Commercial', 'Review']
 
 const SA_PROVINCES = [
   'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
@@ -108,6 +123,9 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
     defaultValues: {
       clientRecordId: defaultClientId ?? '',
       clientName: defaultClient?.name ?? '',
+      supplier: 'MUNICIPAL' as ElectricitySupplier,
+      isTOU: false,
+      supplyVoltage: 'LV' as SupplyVoltage,
       hasPv: true,
       hasBess: false,
       hasWheeling: false,
@@ -139,6 +157,13 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
         values.addressLine?.length >= 2 && values.city?.length >= 2 && values.province?.length >= 2)
     }
     if (step === 1) {
+      if (!values.supplier) return false
+      if (values.supplier === 'MUNICIPAL' && !values.municipalityName) return false
+      if (!values.nmdKva || values.nmdKva <= 0) return false
+      if (!values.supplyVoltage) return false
+      return true
+    }
+    if (step === 2) {
       if (!anyTechSelected) return false
       if (needsTopology && !values.inverterTopology) return false
       if (values.hasPv && !values.pvInverterKw) return false
@@ -149,6 +174,22 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
     }
     return true
   }
+
+  // Auto-derive isTOU when tariff changes
+  useEffect(() => {
+    if (values.tariffName && values.supplier) {
+      setValue('isTOU', isTOUTariff(values.supplier, values.tariffName))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.tariffName, values.supplier])
+
+  // Reset tariff + municipality when supplier changes
+  useEffect(() => {
+    setValue('tariffName', undefined)
+    setValue('isTOU', false)
+    if (values.supplier !== 'MUNICIPAL') setValue('municipalityName', undefined)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.supplier])
 
   const isLastStep = step === STEPS.length - 1
 
@@ -252,8 +293,134 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
           </div>
         )}
 
-        {/* ── Step 1: System Scope & Design ── */}
+        {/* ── Step 1: Tariff & Grid Supply ── */}
         {step === 1 && (
+          <div className="space-y-6">
+
+            {/* Electricity supplier */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Electricity supplier</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {([
+                  { value: 'ESKOM' as const, label: 'Eskom', sub: 'Direct Eskom supply area' },
+                  { value: 'MUNICIPAL' as const, label: 'Municipal utility', sub: 'City / municipality supplied' },
+                ]).map(({ value, label, sub }) => (
+                  <label key={value} className={cn(
+                    'flex items-start gap-3 rounded-md border px-4 py-3 cursor-pointer transition-colors',
+                    values.supplier === value ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
+                  )}>
+                    <input type="radio" value={value} {...register('supplier')} className="mt-0.5 accent-accent-600" />
+                    <div>
+                      <p className="text-sm font-medium text-ink-900">{label}</p>
+                      <p className="text-xs text-ink-500">{sub}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Municipality picker */}
+            {values.supplier === 'MUNICIPAL' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-ink-900">Municipality / utility</label>
+                <select
+                  {...register('municipalityName')}
+                  className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm text-ink-900 focus:border-accent-500 focus:outline-none focus:shadow-ring"
+                >
+                  <option value="">Select municipality…</option>
+                  {SA_MUNICIPALITIES.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                {!values.municipalityName && (
+                  <p className="text-xs text-danger-500">Select the supplying municipality to continue.</p>
+                )}
+              </div>
+            )}
+
+            {/* Tariff category */}
+            <div className="space-y-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-ink-900">
+                  Tariff category <span className="text-ink-400 font-normal">(optional — helps with financial modelling)</span>
+                </label>
+                <select
+                  {...register('tariffName')}
+                  className="h-10 w-full rounded-md border border-ink-200 bg-white px-3 text-sm text-ink-900 focus:border-accent-500 focus:outline-none focus:shadow-ring"
+                >
+                  <option value="">Select tariff…</option>
+                  {getTariffsForSupplier(values.supplier).map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              {values.isTOU && (
+                <div className="flex items-center gap-2 rounded-md bg-accent-50 border border-accent-100 px-3 py-2">
+                  <span className="text-[10px] font-semibold text-accent-600 uppercase tracking-wide">TOU tariff</span>
+                  <span className="text-xs text-ink-600">BESS arbitrage and peak-shaving strategies are applicable.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Supply capacity */}
+            <div className="space-y-4 pt-2 border-t border-ink-100">
+              <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Supply capacity</p>
+
+              <Input
+                label="NMD — Notified Maximum Demand (kVA)"
+                type="number"
+                placeholder="500"
+                hint="Your contracted maximum demand. Embedded generation typically limited to ≤ 100% of NMD."
+                {...register('nmdKva')}
+              />
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-ink-900">Connection / supply voltage</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {SUPPLY_VOLTAGE_OPTIONS.map(opt => (
+                    <label key={opt.value} className={cn(
+                      'flex items-start gap-3 rounded-md border px-3 py-2.5 cursor-pointer transition-colors',
+                      values.supplyVoltage === opt.value ? 'border-accent-500 bg-accent-50' : 'border-ink-200 hover:bg-ink-50'
+                    )}>
+                      <input type="radio" value={opt.value} {...register('supplyVoltage')} className="mt-0.5 accent-accent-600" />
+                      <div>
+                        <p className="text-sm font-medium text-ink-900">{opt.label}</p>
+                        <p className="text-xs text-ink-500">{opt.sub}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Transformer capacity (kVA)"
+                  type="number"
+                  placeholder="630"
+                  hint="Optional — relevant for grid export scenarios"
+                  {...register('transformerCapacityKva')}
+                />
+                <Input
+                  label="Account / meter number"
+                  placeholder="e.g. 30-4567-8901"
+                  hint="Optional — utility account reference"
+                  {...register('accountNumber')}
+                />
+              </div>
+            </div>
+
+            {/* Smart guidance note */}
+            {values.supplier && (
+              <div className="rounded-md bg-ink-50 border border-ink-200 px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold text-ink-700">Application guidance</p>
+                <p className="text-xs text-ink-500 leading-relaxed">
+                  {guidanceForSupplier(values.supplier)}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Step 2: System Scope & Design ── */}
+        {step === 2 && (
           <div className="space-y-6">
 
             {/* Technologies */}
@@ -471,8 +638,8 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
           </div>
         )}
 
-        {/* ── Step 2: Commercial ── */}
-        {step === 2 && (
+        {/* ── Step 3: Commercial ── */}
+        {step === 3 && (
           <div className="space-y-5">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-ink-900">Deal structure</label>
@@ -505,14 +672,18 @@ export function NewProjectWizard({ clients, defaultClientId }: Props) {
           </div>
         )}
 
-        {/* ── Step 3: Review ── */}
-        {step === 3 && (
+        {/* ── Step 4: Review ── */}
+        {step === 4 && (
           <div className="space-y-4">
             <div className="rounded-md border border-ink-200 divide-y divide-ink-100">
               {[
                 { label: 'Client', value: values.clientName },
                 { label: 'Project name', value: values.name },
                 { label: 'Location', value: `${values.city}, ${values.province}` },
+                { label: 'Supplier', value: values.supplier === 'ESKOM' ? 'Eskom' : (values.municipalityName ?? 'Municipal utility') },
+                { label: 'Tariff', value: values.tariffName ? `${[...ESKOM_TARIFFS, ...MUNICIPAL_TARIFFS].find(t => t.value === values.tariffName)?.label ?? values.tariffName}${values.isTOU ? ' (TOU)' : ''}` : '—' },
+                { label: 'NMD', value: values.nmdKva ? `${values.nmdKva} kVA` : '—' },
+                { label: 'Supply voltage', value: values.supplyVoltage ?? '—' },
                 {
                   label: 'Technologies',
                   value: [
