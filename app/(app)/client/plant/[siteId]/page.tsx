@@ -1,19 +1,30 @@
 import { auth } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
+import Link from 'next/link'
 import { db } from '@/lib/db'
 import { getOmReadings, getActiveLicense } from '@/server/queries/client'
 import { getProjectPendingOffer } from '@/server/queries/payments'
 import { PlantCharts } from '@/components/client/plant-charts'
 import { PaywallGate } from '@/components/client/paywall-gate'
 import { OfferAcceptSection } from '@/components/client/offer-accept-section'
+import { SavingsView } from '@/components/client/savings-view'
+import { calculateSavings, calculateDailySavings } from '@/lib/savings-calculator'
+import type { SiteInfo } from '@/lib/site-info'
+import type { TechScope } from '@/lib/tech-scope'
+import { cn } from '@/lib/utils'
 
-type Props = { params: Promise<{ siteId: string }> }
+type Props = {
+  params: Promise<{ siteId: string }>
+  searchParams: Promise<{ tab?: string }>
+}
 
-export default async function PlantDashboardPage({ params }: Props) {
+export default async function PlantDashboardPage({ params, searchParams }: Props) {
   const session = await auth()
   if (!session) redirect('/login')
 
   const { siteId } = await params
+  const { tab } = await searchParams
+  const activeTab = tab === 'savings' ? 'savings' : 'overview'
   const companyId = session.user.companyId
 
   const project = await db.project.findFirst({
@@ -30,6 +41,30 @@ export default async function PlantDashboardPage({ params }: Props) {
     getProjectPendingOffer(project.id, companyId),
     project.stage === 'OPERATIONAL' ? getOmReadings(project.id) : Promise.resolve([]),
   ])
+
+  const siteInfo = project.siteInfo as SiteInfo | null
+  const scope = project.techScope as TechScope | null
+
+  const savings = calculateSavings({
+    readings: readings.map(r => ({
+      productionKwh: r.productionKwh,
+      consumptionKwh: r.consumptionKwh,
+      gridImportKwh: r.gridImportKwh,
+    })),
+    tariffName: siteInfo?.tariffName,
+    nmdKva: siteInfo?.nmdKva ?? 0,
+    hasBess: scope?.hasBess ?? false,
+  })
+
+  const dailySavings = calculateDailySavings(
+    readings.map(r => ({
+      productionKwh: r.productionKwh,
+      consumptionKwh: r.consumptionKwh,
+      gridImportKwh: r.gridImportKwh,
+      recordedAt: r.recordedAt,
+    })),
+    siteInfo?.tariffName
+  )
 
   const isActive = !!license && project.stage === 'OPERATIONAL'
 
@@ -67,18 +102,48 @@ export default async function PlantDashboardPage({ params }: Props) {
         <PaywallGate projectName={project.name} epcName={project.contractorCompany.name} />
       )}
 
-      {/* Active license — charts */}
-      {isActive && readings.length > 0 && (
-        <PlantCharts
-          readings={readings.map((r) => ({
-            recordedAt: r.recordedAt.toISOString(),
-            productionKwh: r.productionKwh,
-            batterySoCPercent: r.batterySoCPercent,
-            consumptionKwh: r.consumptionKwh,
-            irradianceWM2: r.irradianceWM2,
-          }))}
-          tier={license!.tier}
-        />
+      {/* Active license — tabs + content */}
+      {isActive && (
+        <>
+          {/* Tab nav */}
+          <div className="flex gap-1 border border-ink-200 rounded-lg p-1 bg-white w-fit">
+            {[{ label: 'Overview', value: 'overview' }, { label: 'Savings', value: 'savings' }].map(t => (
+              <Link
+                key={t.value}
+                href={`/client/plant/${siteId}?tab=${t.value}`}
+                className={cn(
+                  'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                  activeTab === t.value
+                    ? 'bg-ink-900 text-white'
+                    : 'text-ink-500 hover:text-ink-900'
+                )}
+              >
+                {t.label}
+              </Link>
+            ))}
+          </div>
+
+          {activeTab === 'overview' && readings.length > 0 && (
+            <PlantCharts
+              readings={readings.map(r => ({
+                recordedAt: r.recordedAt.toISOString(),
+                productionKwh: r.productionKwh,
+                batterySoCPercent: r.batterySoCPercent,
+                consumptionKwh: r.consumptionKwh,
+                irradianceWM2: r.irradianceWM2,
+              }))}
+              tier={license.tier}
+            />
+          )}
+
+          {activeTab === 'savings' && readings.length > 0 && (
+            <SavingsView
+              savings={savings}
+              dailySavings={dailySavings}
+              nmdKva={siteInfo?.nmdKva ?? 0}
+            />
+          )}
+        </>
       )}
 
       {isActive && readings.length === 0 && (
