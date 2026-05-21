@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Wordmark } from '@/components/brand/wordmark'
 import {
   Layers, CheckCircle, ShieldCheck, Wrench, Activity, MessageSquare,
-  ShoppingBag, Building2, Users, ArrowRight, Globe,
+  ShoppingBag, Building2, Users, ArrowRight, Globe, Minus,
 } from 'lucide-react'
 
 // ── Plan feature lists ────────────────────────────────────────────────────────
@@ -334,6 +334,97 @@ export default function LandingPage() {
               features={SP_FEATURES}
               cta="Join as a service provider"
             />
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-ink-100 my-10" />
+
+        {/* End client / O&M license */}
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-ink-400 mb-2">
+                For building owners &amp; facility managers
+              </p>
+              <h3 className="text-xl font-semibold text-ink-900">O&amp;M Dashboard &amp; Monitoring License</h3>
+              <p className="text-sm text-ink-500 mt-1.5 max-w-xl leading-relaxed">
+                Your EPC manages your project on SEE. As the site owner, you can integrate your
+                plant into the SEE platform for real-time monitoring, O&amp;M tracking, and
+                performance reporting. Access is provisioned through your contractor.
+              </p>
+            </div>
+            <Link
+              href="/login"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-ink-900 px-5 text-sm font-medium text-white hover:bg-ink-800 transition-colors flex-shrink-0"
+            >
+              Contact Sales
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+            </Link>
+          </div>
+
+          <div className="rounded-xl border border-ink-200 overflow-hidden">
+            {/* Tier header row */}
+            <div className="grid grid-cols-5 border-b border-ink-100">
+              <div className="p-5" />
+              {[
+                { name: 'Basic', sub: 'Core visibility' },
+                { name: 'Standard', sub: 'Full dashboard' },
+                { name: 'Premium', sub: 'Reports & exports' },
+                { name: 'AI', sub: 'Prescriptive maintenance' },
+              ].map((tier, i) => (
+                <div key={tier.name} className={`p-5 text-center border-l border-ink-100 ${i === 1 ? 'bg-ink-25' : ''}`}>
+                  <p className="text-sm font-semibold text-ink-900">{tier.name}</p>
+                  <p className="text-xs text-ink-400 mt-0.5">{tier.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Feature rows */}
+            {[
+              { label: 'Plant performance dashboard',        basic: true,  standard: true,  premium: true,  ai: true  },
+              { label: 'Live production & consumption data', basic: true,  standard: true,  premium: true,  ai: true  },
+              { label: 'Document repository',               basic: true,  standard: true,  premium: true,  ai: true  },
+              { label: 'O&M event log',                     basic: true,  standard: true,  premium: true,  ai: true  },
+              { label: 'Project communications access',     basic: true,  standard: true,  premium: true,  ai: true  },
+              { label: 'Battery SoC & irradiance tracking', basic: false, standard: true,  premium: true,  ai: true  },
+              { label: 'O&M scheduling & maintenance log',  basic: false, standard: true,  premium: true,  ai: true  },
+              { label: 'Performance benchmarking & reports',basic: false, standard: false, premium: true,  ai: true  },
+              { label: 'Scheduled data exports',            basic: false, standard: false, premium: true,  ai: true  },
+              { label: 'SEE.AI prescriptive maintenance',   basic: false, standard: false, premium: false, ai: true  },
+              { label: 'Automated anomaly alerts',          basic: false, standard: false, premium: false, ai: true  },
+            ].map((row, ri) => (
+              <div key={row.label} className={`grid grid-cols-5 border-b border-ink-100 last:border-b-0 ${ri % 2 === 1 ? 'bg-ink-25/50' : ''}`}>
+                <div className="p-4 px-5">
+                  <p className="text-sm text-ink-700">{row.label}</p>
+                </div>
+                {(['basic', 'standard', 'premium', 'ai'] as const).map((tier, i) => (
+                  <div key={tier} className={`p-4 flex items-center justify-center border-l border-ink-100 ${i === 1 ? 'bg-ink-25/60' : ''}`}>
+                    {row[tier]
+                      ? <CheckCircle className="h-4 w-4 text-ink-600" strokeWidth={2} />
+                      : <Minus className="h-4 w-4 text-ink-200" strokeWidth={2} />
+                    }
+                  </div>
+                ))}
+              </div>
+            ))}
+
+            {/* CTA row */}
+            <div className="grid grid-cols-5 bg-ink-25 border-t border-ink-200">
+              <div className="p-5">
+                <p className="text-xs text-ink-400">Pricing on request — contact your EPC or our sales team.</p>
+              </div>
+              {[0, 1, 2, 3].map(i => (
+                <div key={i} className={`p-4 flex items-center justify-center border-l border-ink-100 ${i === 1 ? 'bg-ink-25' : ''}`}>
+                  <Link
+                    href="/login"
+                    className="text-xs font-medium text-ink-600 hover:text-ink-900 transition-colors"
+                  >
+                    Contact Sales
+                  </Link>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
