@@ -626,6 +626,11 @@ model JobCard {
   providerCompanyId   String
   scopeOfWork         String
   amountCents         Int
+  spAmountCents        Int     @default(0)
+  markedUpAmountCents  Int     @default(0)
+  spPayoutCents        Int     @default(0)
+  tierDiscountPercent  Float   @default(0)
+  spCommissionPercent  Float   @default(5)
   escrowStatus        EscrowStatus  @default(AWAITING_PAYMENT)
   status              JobCardStatus @default(ACTIVE)
   escrowPaymentId     String?       // Payment.id — plain ref, no FK (prototype)
