@@ -101,6 +101,8 @@ export default async function OverviewPage({ params }: Props) {
       ].filter(Boolean).join(', ')
     : TECH_LABELS[project.technology] ?? project.technology
 
+  const parsedSiteInfo = parseSiteInfo(project.siteInfo)
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 overflow-y-auto h-full">
 
@@ -124,9 +126,7 @@ export default async function OverviewPage({ params }: Props) {
       </Card>
 
       {/* Site supply */}
-      {parseSiteInfo(project.siteInfo) && (
-        <SiteSupplyCard s={parseSiteInfo(project.siteInfo)!} />
-      )}
+      {parsedSiteInfo && <SiteSupplyCard s={parsedSiteInfo} />}
 
       {/* Tech scope detail cards — only shown for new projects with techScope JSON */}
       {scope && (
