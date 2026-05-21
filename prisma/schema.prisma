@@ -117,8 +117,6 @@ model Company {
   // Contractor-side
   projects          Project[]          @relation("ContractorProjects")
   tierStatus        TierStatus?
-  walletBalance     WalletBalance?
-  tokenTransactions TokenTransaction[]
 
   // Service Provider-side
   serviceProviderProfile ServiceProviderProfile?
@@ -223,7 +221,7 @@ model ComplianceDocument {
 }
 
 // =========================================================================
-// TIER & WALLET
+// TIER
 // =========================================================================
 
 model TierStatus {
@@ -244,46 +242,6 @@ enum Tier {
   SILVER
   GOLD
   PLATINUM
-}
-
-model WalletBalance {
-  id        String @id @default(cuid())
-  companyId String @unique
-  tokens    Int    @default(0)
-  fiatCents Int    @default(0) // escrow / pending
-
-  company Company @relation(fields: [companyId], references: [id])
-
-  updatedAt DateTime @updatedAt
-}
-
-model TokenTransaction {
-  id          String               @id @default(cuid())
-  companyId   String
-  amount      Int // positive = earned, negative = spent
-  type        TokenTransactionType
-  description String
-  metadata    Json? // reference to related entity (project, milestone, order)
-
-  company Company @relation(fields: [companyId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@index([companyId, createdAt])
-}
-
-enum TokenTransactionType {
-  EARN_TUTORIAL
-  EARN_PROJECT_CREATE
-  EARN_SERVICE_REQUEST
-  EARN_EXISTING_PROJECT_UPLOAD
-  EARN_CASHBACK
-  EARN_TIER_BONUS
-  SPEND_AI_VERIFICATION
-  SPEND_EXPERT_VERIFICATION
-  SPEND_COMPANY_PROFILE_GEN
-  SPEND_HARDWARE_DISCOUNT
-  ADJUSTMENT
 }
 
 // =========================================================================
@@ -548,7 +506,6 @@ model MilestoneVerification {
   type          VerificationType
   status        VerificationResultStatus
   performedBy   String? // userId for expert; null for AI
-  costTokens    Int
   qualityRating VerificationQuality? // colour-coded per Journey doc
   findings      Json // structured findings
   notes         String?
@@ -777,10 +734,7 @@ model Order {
   companyId            String
   status               OrderStatus @default(PENDING_PAYMENT)
   subtotalCents        Int
-  tokenDiscountCents   Int         @default(0)
-  tokensApplied        Int         @default(0)
   totalCents           Int
-  cashbackTokensEarned Int         @default(0)
   paymentRef           String?
 
   company Company     @relation(fields: [companyId], references: [id])
