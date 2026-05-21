@@ -230,8 +230,3 @@ export const AI_VERIFICATION_LOG_LINES: string[] = [
   'Generating compliance report…',
 ]
 
-/** Token cost for AI-assisted verification. */
-export const AI_VERIFICATION_COST_TOKENS = 1_000
-
-/** Token cost for expert (human) verification. */
-export const EXPERT_VERIFICATION_COST_TOKENS = 10_000

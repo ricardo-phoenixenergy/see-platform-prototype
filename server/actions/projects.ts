@@ -331,22 +331,6 @@ export async function createProject(input: z.infer<typeof CreateProjectSchema>):
       }
       // ── End workspace auto-creation ──────────────────────────────────────────
 
-      // Award tokens for project creation
-      await tx.walletBalance.update({
-        where: { companyId: session.user.companyId },
-        data: { tokens: { increment: 2000 } },
-      })
-
-      await tx.tokenTransaction.create({
-        data: {
-          companyId: session.user.companyId,
-          amount: 2000,
-          type: 'EARN_PROJECT_CREATE',
-          description: `Project created: ${data.name}`,
-          metadata: { projectId: proj.id },
-        },
-      })
-
       return proj
     })
 
