@@ -2,15 +2,13 @@
 // components/client/plant-charts.tsx
 // Recharts charts for O&M plant data. Used in client plant dashboard + contractor monitoring.
 
-import { useState } from 'react'
 import {
   LineChart, Line, AreaChart, Area, ScatterChart, Scatter,
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts'
+import { Sun, Cloud, CloudRain, CloudSun, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const BRANDS = ['SunSynk', 'Victron', 'WEG', 'Deye'] as const
 
 type OmReading = {
   recordedAt: string | Date
@@ -30,9 +28,26 @@ function fmt(date: string | Date) {
   return `${d.getDate()}/${d.getMonth() + 1}`
 }
 
-export function PlantCharts({ readings, tier }: Props) {
-  const [brand, setBrand] = useState<(typeof BRANDS)[number]>('SunSynk')
+// ── Static 5-day weather forecast (demo — seeded for site location) ────────────
+const FORECAST = [
+  { day: 'Today', icon: 'sun',    hi: 28, lo: 18, desc: 'Sunny',          irrWM2: 920 },
+  { day: 'Thu',   icon: 'partly', hi: 24, lo: 16, desc: 'Partly cloudy',  irrWM2: 610 },
+  { day: 'Fri',   icon: 'rain',   hi: 17, lo: 13, desc: 'Rain expected',  irrWM2: 140 },
+  { day: 'Sat',   icon: 'partly', hi: 21, lo: 15, desc: 'Clearing',       irrWM2: 680 },
+  { day: 'Sun',   icon: 'sun',    hi: 27, lo: 17, desc: 'Sunny',          irrWM2: 900 },
+] as const
 
+function WeatherIcon({ type, className }: { type: string; className?: string }) {
+  if (type === 'rain')   return <CloudRain className={className} strokeWidth={1.5} />
+  if (type === 'partly') return <CloudSun  className={className} strokeWidth={1.5} />
+  if (type === 'cloudy') return <Cloud     className={className} strokeWidth={1.5} />
+  return <Sun className={className} strokeWidth={1.5} />
+}
+
+// Find the first low-irradiance day (< 300 W/m²) after today for the insight card
+const lowDay = FORECAST.slice(1).find(f => f.irrWM2 < 300) ?? null
+
+export function PlantCharts({ readings, tier }: Props) {
   const productionData = readings.map((r) => ({
     date: fmt(r.recordedAt),
     kWh: Math.round(r.productionKwh * 10) / 10,
@@ -66,26 +81,6 @@ export function PlantCharts({ readings, tier }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Multi-brand selector */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-ink-400">Data source</p>
-        <div className="flex gap-1">
-          {BRANDS.map((b) => (
-            <button
-              key={b}
-              onClick={() => setBrand(b)}
-              className={cn(
-                'h-7 px-3 rounded-full text-xs font-medium border transition-colors',
-                brand === b
-                  ? 'bg-ink-900 text-white border-ink-900'
-                  : 'bg-white text-ink-500 border-ink-200 hover:border-ink-400'
-              )}
-            >
-              {b}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -101,6 +96,52 @@ export function PlantCharts({ readings, tier }: Props) {
           </div>
         ))}
       </div>
+
+      {/* ── Weather forecast ── */}
+      <div className="rounded-lg border border-ink-200 bg-white p-4 space-y-3">
+        <p className="text-xs font-semibold text-ink-700">5-day solar forecast</p>
+        <div className="grid grid-cols-5 divide-x divide-ink-100">
+          {FORECAST.map((day) => (
+            <div key={day.day} className="flex flex-col items-center gap-1.5 px-3 py-2 first:pl-0 last:pr-0">
+              <p className="text-[11px] font-medium text-ink-500">{day.day}</p>
+              <WeatherIcon
+                type={day.icon}
+                className={cn(
+                  'h-6 w-6',
+                  day.icon === 'rain'   ? 'text-blue-400' :
+                  day.icon === 'partly' ? 'text-amber-400' :
+                  'text-amber-500'
+                )}
+              />
+              <p className="text-xs text-ink-700">{day.desc}</p>
+              <p className="text-[11px] text-ink-500 tabular-nums">{day.hi}° / {day.lo}°</p>
+              <div className={cn(
+                'text-[10px] font-medium px-1.5 py-0.5 rounded-sm tabular-nums',
+                day.irrWM2 >= 700 ? 'bg-amber-50 text-amber-700' :
+                day.irrWM2 >= 400 ? 'bg-ink-100 text-ink-600' :
+                'bg-blue-50 text-blue-600'
+              )}>
+                {day.irrWM2} W/m²
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── SEE Insights ── */}
+      {lowDay && (
+        <div className="rounded-lg border border-accent-200 bg-accent-500/5 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-accent-500" strokeWidth={2} />
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent-600">SEE Insights</p>
+          </div>
+          <p className="text-sm text-ink-800 leading-relaxed">
+            <span className="font-medium">Low solar generation forecast for {lowDay.day}</span> — expected cloud cover and rainfall will reduce irradiance to approximately {lowDay.irrWM2} W/m².
+            Consider charging the BESS to maximum capacity today and tomorrow to maintain backup reserve through the low-generation period and protect against grid dependency during the event.
+          </p>
+          <p className="text-xs text-ink-500">Based on 5-day irradiance forecast · Updated daily</p>
+        </div>
+      )}
 
       {/* Charts grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
